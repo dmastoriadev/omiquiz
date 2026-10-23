@@ -3,6 +3,7 @@ const WIDTH = 1000;
 const HEIGHT = 625;
 const MAX_POINTS = 100;
 const MAX_UNSENT = 160;
+const lastItem = items => items?.length ? items[items.length - 1] : undefined;
 
 export default function registerSketch(Alpine) {
     Alpine.data('sketchBoard', (urls = {}) => ({
@@ -19,6 +20,8 @@ export default function registerSketch(Alpine) {
         erasing: false,
         guessText: '',
         guessing: false,
+        hintSharing: false,
+        hintError: '',
         guessMessage: '',
         sketchError: '',
         drawingError: '',
@@ -29,6 +32,10 @@ export default function registerSketch(Alpine) {
         confirmedCanvas: null,
         confirmedContext: null,
         paintedCursor: 0,
+        paintedUndoCursor: 0,
+        unreadGuesses: false,
+        undoCandidateId: null,
+        undoneStrokeIds: new Set(),
         observer: null,
         listeners: [],
         activeStroke: null,
@@ -72,6 +79,35 @@ export default function registerSketch(Alpine) {
                 && !this.sketch?.is_drawer && !this.sketch?.guessed && this.remainingSeconds > 0;
         },
 
+        get canRevealHint() {
+            return this.isMember && this.sketchStatus === 'in_progress' && this.sketchPhase === 'drawing'
+                && !!this.sketch?.is_drawer && !!this.sketch?.hint_available && !this.sketch?.hint_revealed
+                && this.sketch?.can_reveal_hint === true && this.remainingSeconds > 0
+                && !!this.sketchUrls.hint && !this.hintSharing;
+        },
+
+        get undoStrokeId() { return this.undoCandidateId; },
+
+        refreshUndoState() {
+            const timeline = this.drawingTimeline();
+            this.undoneStrokeIds = new Set(timeline.filter(event => event.type === 'undo').map(event => event.stroke_id));
+            const stack = [];
+            const seen = new Set();
+            for (const event of timeline) {
+                if (event.type === 'clear') { stack.length = 0; seen.clear(); }
+                else if (event.type === 'undo') {
+                    const index = stack.indexOf(event.stroke_id);
+                    if (index !== -1) stack.splice(index, 1);
+                } else if (event.type === 'stroke' && event.stroke_id && !seen.has(event.stroke_id) && !this.undoneStrokeIds.has(event.stroke_id)) {
+                    seen.add(event.stroke_id);
+                    stack.push(event.stroke_id);
+                }
+            }
+            this.undoCandidateId = lastItem(stack) || null;
+        },
+
+        get canUndo() { return this.canDraw && !!this.undoStrokeId; },
+
         get drawingStatus() {
             if (!this.sketch?.turn_id) return '';
             if (this.drawingError) return this.drawingError;
@@ -84,6 +120,10 @@ export default function registerSketch(Alpine) {
             if (this.destroyed) return;
             const next = state?.game_type === 'sketch' ? state.sketch : null;
             const changed = (next?.turn_id ?? null) !== (this.sketch?.turn_id ?? null);
+            const previousGuess = lastItem(this.sketch?.guesses)?.id;
+            const revealedHint = !changed && this.sketch?.hint_revealed ? this.sketch.hint : null;
+            const feed = this.$refs?.guessFeed;
+            const followGuesses = changed || !feed || feed.scrollHeight - feed.scrollTop - feed.clientHeight < 48;
             const timestamp = Date.parse(state?.server_now || '');
             if (Number.isFinite(timestamp)) this.serverOffset = timestamp - Date.now();
             this.now = Date.now();
@@ -110,8 +150,19 @@ export default function registerSketch(Alpine) {
                 this.guessMessage = '';
                 this.guessText = '';
                 this.guessing = false;
+                this.hintSharing = false;
+                this.hintError = '';
+                this.unreadGuesses = false;
+                this.undoCandidateId = null;
+                this.undoneStrokeIds = new Set();
             }
-            this.sketch = next || {};
+            // A delayed poll must not hide a hint that this turn already revealed.
+            this.sketch = next ? {...next, ...(revealedHint ? {hint: revealedHint, hint_revealed: true, can_reveal_hint: false} : {})} : {};
+            if (this.sketch.hint_revealed) this.hintError = '';
+            if (changed || previousGuess !== lastItem(this.sketch.guesses)?.id) {
+                if (followGuesses) this.scrollGuesses();
+                else this.unreadGuesses = true;
+            }
             if (this.sketchPhase !== 'drawing' && this.activeStroke) this.finishStroke();
             this.updateCanvasInput();
             if (changed) {
@@ -216,9 +267,10 @@ export default function registerSketch(Alpine) {
             if (!point) return;
             this.preventInput(event);
             this.activeStroke = {
-                pointerId: event.pointerId, type: 'stroke', points: [point], dirty: true,
+                pointerId: event.pointerId, type: 'stroke', stroke_id: this.newRequestId(), points: [point], dirty: true,
                 color: this.erasing ? '#ffffff' : this.color, width: this.erasing ? Math.max(12, this.brushWidth) : this.brushWidth,
             };
+            this.undoCandidateId = this.activeStroke.stroke_id;
             try { if (typeof event.pointerId === 'number') this.canvas.setPointerCapture?.(event.pointerId); } catch { /* Window end handlers remain active. */ }
             this.drawEvent(this.activeStroke);
             this.chunkTimer = setInterval(() => this.flushStrokeChunk(), 120);
@@ -282,7 +334,7 @@ export default function registerSketch(Alpine) {
         flushStrokeChunk() {
             if (!this.activeStroke?.dirty) return;
             const stroke = this.activeStroke;
-            this.unsent.push({type: 'stroke', points: stroke.points.map(point => ({...point})), color: stroke.color, width: stroke.width});
+            this.unsent.push({type: 'stroke', stroke_id: stroke.stroke_id, points: stroke.points.map(point => ({...point})), color: stroke.color, width: stroke.width});
             const last = stroke.points[stroke.points.length - 1];
             stroke.points = [{...last}];
             stroke.dirty = false;
@@ -322,8 +374,46 @@ export default function registerSketch(Alpine) {
             if (!this.canDraw) return;
             this.finishStroke();
             this.unsent.push({type: 'clear'});
+            this.refreshUndoState();
             this.requestPaint();
             this.scheduleSend();
+        },
+
+        undoDrawing() {
+            if (!this.canDraw) return;
+            this.finishStroke();
+            const strokeId = this.undoStrokeId;
+            if (!strokeId) return;
+            this.unsent.push({type: 'undo', stroke_id: strokeId});
+            this.refreshUndoState();
+            this.requestPaint();
+            this.scheduleSend();
+        },
+
+        drawingTimeline() {
+            return [...this.confirmed, ...this.batches.flatMap(batch => batch.events), ...this.unsent,
+                ...(this.activeStroke ? [this.activeStroke] : [])];
+        },
+
+        visibleDrawingEvents(events) {
+            const undone = new Set(events.filter(event => event.type === 'undo').map(event => event.stroke_id));
+            return events.filter(event => event.type !== 'undo'
+                && !(event.type === 'stroke' && event.stroke_id && undone.has(event.stroke_id)));
+        },
+
+        scrollGuesses() {
+            const scroll = () => {
+                const feed = this.$refs?.guessFeed;
+                if (feed) feed.scrollTop = feed.scrollHeight;
+                this.unreadGuesses = false;
+            };
+            if (typeof this.$nextTick === 'function') this.$nextTick(scroll);
+            else scroll();
+        },
+
+        trackGuessScroll() {
+            const feed = this.$refs?.guessFeed;
+            if (feed && feed.scrollHeight - feed.scrollTop - feed.clientHeight < 48) this.unreadGuesses = false;
         },
 
         requestPaint() {
@@ -338,12 +428,20 @@ export default function registerSketch(Alpine) {
             context.setTransform(this.canvas.width / WIDTH, 0, 0, this.canvas.height / HEIGHT, 0, 0);
             context.fillStyle = '#ffffff';
             context.fillRect(0, 0, WIDTH, HEIGHT);
+            const pending = [...this.confirmed.filter(event => event.seq > this.cursor),
+                ...this.batches.flatMap(batch => batch.events), ...this.unsent];
+            // An unacknowledged undo must also hide ink already in the cached layer.
+            // Rebuild the visible timeline until that undo joins the confirmed cache.
+            if (pending.some(event => event.type === 'undo')) {
+                for (const event of this.visibleDrawingEvents(this.drawingTimeline())) this.drawEvent(event);
+                return;
+            }
             const layer = this.confirmedLayer();
             if (layer) {
                 context.drawImage(layer, 0, 0, WIDTH, HEIGHT);
                 // Acknowledgements can arrive ahead of an earlier replay page.
                 for (const event of this.confirmed) if (event.seq > this.cursor) this.drawEvent(event);
-            } else for (const event of this.confirmed) this.drawEvent(event);
+            } else for (const event of this.visibleDrawingEvents(this.confirmed)) this.drawEvent(event);
             for (const batch of this.batches) for (const event of batch.events) this.drawEvent(event);
             for (const event of this.unsent) this.drawEvent(event);
             if (this.activeStroke) this.drawEvent(this.activeStroke);
@@ -355,6 +453,9 @@ export default function registerSketch(Alpine) {
         },
 
         renderEvent(event, context, width, height) {
+            // A second drawer tab can deliver an old gesture's chunks after Undo.
+            // Keep incremental painting consistent with a full reconnect replay.
+            if (event.type === 'stroke' && event.stroke_id && this.undoneStrokeIds.has(event.stroke_id)) return;
             context.setTransform(width / WIDTH, 0, 0, height / HEIGHT, 0, 0);
             if (event.type === 'clear') {
                 context.fillStyle = '#ffffff';
@@ -383,6 +484,7 @@ export default function registerSketch(Alpine) {
             this.confirmedCanvas = null;
             this.confirmedContext = null;
             this.paintedCursor = 0;
+            this.paintedUndoCursor = 0;
         },
 
         confirmedLayer() {
@@ -397,18 +499,24 @@ export default function registerSketch(Alpine) {
             }
             const layer = this.confirmedCanvas;
             const context = this.confirmedContext;
-            if (layer.width !== this.canvas.width || layer.height !== this.canvas.height || !this.paintedCursor) {
+            const events = this.confirmed.filter(event => event.seq <= this.cursor);
+            const undoCursor = lastItem(events.filter(event => event.type === 'undo'))?.seq || 0;
+            if (layer.width !== this.canvas.width || layer.height !== this.canvas.height
+                || !this.paintedCursor || undoCursor !== this.paintedUndoCursor) {
                 layer.width = this.canvas.width;
                 layer.height = this.canvas.height;
                 context.setTransform(layer.width / WIDTH, 0, 0, layer.height / HEIGHT, 0, 0);
                 context.fillStyle = '#ffffff';
                 context.fillRect(0, 0, WIDTH, HEIGHT);
-                this.paintedCursor = 0;
-            }
-            for (const event of this.confirmed) {
-                if (event.seq > this.paintedCursor && event.seq <= this.cursor) {
-                    this.renderEvent(event, context, layer.width, layer.height);
-                    this.paintedCursor = event.seq;
+                for (const event of this.visibleDrawingEvents(events)) this.renderEvent(event, context, layer.width, layer.height);
+                this.paintedCursor = this.cursor;
+                this.paintedUndoCursor = undoCursor;
+            } else {
+                for (const event of events) {
+                    if (event.seq > this.paintedCursor) {
+                        this.renderEvent(event, context, layer.width, layer.height);
+                        this.paintedCursor = event.seq;
+                    }
                 }
             }
             return layer;
@@ -501,6 +609,7 @@ export default function registerSketch(Alpine) {
             }
             this.batches = this.batches.filter(batch => (confirmedCounts.get(batch.request_id) || 0) < batch.events.length);
             while (bySequence.has(this.cursor + 1)) this.cursor++;
+            this.refreshUndoState();
             this.requestPaint();
         },
 
@@ -544,6 +653,32 @@ export default function registerSketch(Alpine) {
             // A definitive server rejection must not be bypassed by a local retry.
             if (!this.drawingBlocked) this.scheduleSend(0);
             this.scheduleRead(0);
+        },
+
+        async revealHint() {
+            if (!this.canRevealHint) return;
+            const turnId = this.sketch.turn_id;
+            const generation = this.generation;
+            this.hintSharing = true;
+            this.hintError = '';
+            // Hint sharing never flushes, clears or resets an in-progress gesture.
+            try {
+                const response = await window.axios.post(this.sketchUrls.hint, {turn_id: turnId}, {headers: this.headers(), timeout: 10000});
+                if (generation !== this.generation || this.destroyed) return;
+                const next = response.data?.state;
+                if (Number(next?.sketch?.turn_id) !== Number(turnId)) return;
+                if (next.phase === 'drawing' && (this.sketchPhase !== 'drawing' || this.sketchStatus !== 'in_progress')) return;
+                if (next.sketch.hint_revealed && next.sketch.hint) {
+                    this.sketch = {...this.sketch, hint: next.sketch.hint, hint_revealed: true, can_reveal_hint: false};
+                }
+                this.$dispatch?.('sketch-state', next);
+            } catch (failure) {
+                if (generation !== this.generation || this.destroyed || this.sketch?.hint_revealed) return;
+                this.hintError = Object.values(failure.response?.data?.errors || {}).flat()[0]
+                    || failure.response?.data?.message || 'Could not share the hint. You can try again.';
+            } finally {
+                if (generation === this.generation && !this.destroyed) this.hintSharing = false;
+            }
         },
 
         async submitGuess() {

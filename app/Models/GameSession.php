@@ -20,7 +20,7 @@ class GameSession extends Model
     // Snapshot values must be copied from the game by the session service.
     protected $fillable = [
         'game_type', 'sketch_words', 'hosted_by', 'game_title', 'min_players', 'max_players',
-        'time_limit_per_question', 'status', 'current_question_position',
+        'time_limit_per_question', 'letter_hint_max', 'status', 'current_question_position',
         'total_questions', 'started_at', 'completed_at', 'cancelled_at',
     ];
 
@@ -31,6 +31,7 @@ class GameSession extends Model
         'status' => self::STATUS_WAITING,
         'current_question_position' => 0,
         'total_questions' => 0,
+        'letter_hint_max' => 0,
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ class GameSession extends Model
             'min_players' => 'integer',
             'max_players' => 'integer',
             'time_limit_per_question' => 'integer',
+            'letter_hint_max' => 'integer',
             'current_question_position' => 'integer',
             'total_questions' => 'integer',
             'started_at' => 'immutable_datetime',

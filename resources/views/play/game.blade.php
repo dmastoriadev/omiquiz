@@ -2,7 +2,7 @@
 @section('title', $session->game_title)
 @section('page-width', 'max-w-none')
 @section('content')
-    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('play.state', $session), 'answer' => route('play.answer', $session), 'profile' => route('play.profile', $session), 'ready' => route('play.ready', $session), 'guess' => route('play.sketch.guess', $session), 'drawingWrite' => route('play.sketch.draw', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
+    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('play.state', $session), 'answer' => route('play.answer', $session), 'profile' => route('play.profile', $session), 'ready' => route('play.ready', $session), 'guess' => route('play.sketch.guess', $session), 'hint' => route('play.sketch.hint', $session), 'drawingWrite' => route('play.sketch.draw', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
         <div class="spectator-heading">
             <div class="min-w-0"><p class="spectator-eyebrow" x-text="state.status === 'waiting' ? 'Player view / Waiting lobby' : 'Player view / ' + statusLabel"></p><h1 class="mt-1 break-words text-3xl font-bold tracking-tight sm:text-4xl">{{ $session->game_title }}</h1></div>
             <span class="spectator-status"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span><span x-text="state.status === 'waiting' ? 'Waiting for host' : statusLabel"></span></span>

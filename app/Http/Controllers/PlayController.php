@@ -120,6 +120,16 @@ class PlayController extends Controller
         return response()->json(['state' => $this->presenter->present($session, $player)] + $outcome);
     }
 
+    public function hint(Request $request, GameSession $session, SketchSessionService $sketch): JsonResponse
+    {
+        $player = $this->participant($request, $session);
+        abort_unless($player, 403, 'Reopen your invitation in the browser you used to join.');
+        $validated = $request->validate(['turn_id' => ['required', 'integer', 'min:1']]);
+        $sketch->revealHint($session, $player, (int) $validated['turn_id']);
+
+        return response()->json(['state' => $this->presenter->present($session, $player)]);
+    }
+
     public function draw(Request $request, GameSession $session, SketchSessionService $sketch): JsonResponse
     {
         $player = $this->participant($request, $session);
@@ -129,7 +139,8 @@ class PlayController extends Controller
             'turn_id' => ['required', 'integer', 'min:1'],
             'request_id' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
             'events' => ['required', 'array', 'min:1', 'max:8'],
-            'events.*.type' => ['required', Rule::in(['stroke', 'clear'])],
+            'events.*.type' => ['required', Rule::in(['stroke', 'clear', 'undo'])],
+            'events.*.stroke_id' => ['sometimes', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/D'],
             'events.*.points' => ['sometimes', 'array', 'min:1', 'max:100'],
             'events.*.points.*.x' => ['required', 'numeric', 'between:0,1'],
             'events.*.points.*.y' => ['required', 'numeric', 'between:0,1'],

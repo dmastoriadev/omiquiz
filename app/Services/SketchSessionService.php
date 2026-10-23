@@ -36,6 +36,7 @@ class SketchSessionService
                 'hosted_by' => $host->id, 'game_type' => Game::TYPE_SKETCH,
                 'game_title' => $game->title, 'min_players' => $game->min_players,
                 'max_players' => $game->max_players, 'time_limit_per_question' => $game->time_limit_per_question,
+                'letter_hint_max' => $game->letter_hint_max,
                 'sketch_words' => $bank, 'total_questions' => count($bank),
             ]);
         }, 3);
@@ -50,7 +51,10 @@ class SketchSessionService
             if ($session->status !== GameSession::STATUS_WAITING) {
                 $this->fail('session', 'Only a waiting session can be started.');
             }
-            if ($game) $session->time_limit_per_question = $game->time_limit_per_question;
+            if ($game) {
+                $session->time_limit_per_question = $game->time_limit_per_question;
+                $session->letter_hint_max = $game->letter_hint_max;
+            }
             $this->validateSettings($session);
             $players = $session->players()->where('status', GameSessionPlayer::STATUS_JOINED)->orderBy('joined_at')->orderBy('id')->get();
             if ($players->count() < $session->min_players || $players->count() > $session->max_players) {
@@ -71,6 +75,7 @@ class SketchSessionService
                 $turn = $session->sketchTurns()->create([
                     'drawer_id' => $player->id, 'position' => $index + 1,
                     'prompt' => $word['word'], 'aliases' => $word['aliases'] ?? [],
+                    'letter_hint' => app(SketchHintGenerator::class)->make($word['word'], $session->letter_hint_max),
                     'time_limit_seconds' => $session->time_limit_per_question,
                 ]);
                 if ($index === 0) $this->openTurn($turn, $now);
@@ -114,7 +119,14 @@ class SketchSessionService
             }
             $normalized = self::normalizeGuess($guess);
             $answers = array_map(self::normalizeGuess(...), [$turn->prompt, ...($turn->aliases ?? [])]);
-            if (! in_array($normalized, $answers, true)) return ['correct' => false, 'already_guessed' => false, 'points_awarded' => 0, 'drawer_bonus' => 0];
+            $correct = in_array($normalized, $answers, true);
+            // Correct guesses announce the player without publishing the secret word.
+            // This timeline is separate from the correct-only scoring ledger.
+            $turn->guessMessages()->create([
+                'game_session_id' => $session->id, 'game_session_player_id' => $member->id,
+                'text' => $correct ? null : trim($guess), 'is_correct' => $correct, 'guessed_at' => $now,
+            ]);
+            if (! $correct) return ['correct' => false, 'already_guessed' => false, 'points_awarded' => 0, 'drawer_bonus' => 0];
             $elapsed = max(0, $this->milliseconds($now) - $this->milliseconds($turn->opened_at));
             $points = max(100, 1000 - (int) floor(900 * $elapsed / ($turn->time_limit_seconds * 1000)));
             $bonus = (int) floor($points / 4);
@@ -128,6 +140,30 @@ class SketchSessionService
             return ['correct' => true, 'already_guessed' => false, 'points_awarded' => $points, 'drawer_bonus' => $bonus];
         }, 3);
         return $this->unwrap($outcome);
+    }
+
+    public function revealHint(GameSession $session, GameSessionPlayer $player, int $turnId): GameSession
+    {
+        $outcome = DB::transaction(function () use ($session, $player, $turnId): array {
+            $session = $this->lockSession($session);
+            $now = $this->now();
+            $this->advanceLocked($session, $now);
+            $member = $session->players()->find($player->id);
+            $turn = $session->sketchTurns()->find($turnId);
+            if (! $member || ! $turn || $turn->drawer_id !== $member->id) {
+                return ['error' => ['player' => 'Only this turn’s drawer can reveal the hint.']];
+            }
+            if (! $this->isOpen($session, $turn, $now) || $member->status !== GameSessionPlayer::STATUS_PLAYING) {
+                return ['error' => ['turn_id' => 'This drawing turn has ended.']];
+            }
+            if ($turn->letter_hint === null) return ['error' => ['hint' => 'Letter hints are not enabled for this turn.']];
+            if (! $turn->hint_revealed_at) {
+                $turn->hint_revealed_at = $now;
+                $turn->save();
+            }
+            return ['session' => $session->refresh()];
+        }, 3);
+        return $this->unwrap($outcome)['session'];
     }
 
     public function appendDrawing(GameSession $session, GameSessionPlayer $player, int $turnId, string $requestId, array $events): array
@@ -148,6 +184,9 @@ class SketchSessionService
             }
             if (! $this->isOpen($session, $turn, $now) || $member->status !== GameSessionPlayer::STATUS_PLAYING) return ['error' => ['turn_id' => 'This drawing turn has ended.']];
             if ($turn->stroke_sequence + count($events) > self::MAX_EVENTS) return ['error' => ['events' => 'This turn has reached its drawing limit.']];
+            if (in_array('undo', array_column($events, 'type'), true) && ! $this->validUndoTargets($turn, $events)) {
+                return ['error' => ['events' => 'That stroke cannot be undone. Refresh to see the current sketch.']];
+            }
             $saved = [];
             $sequence = $turn->stroke_sequence;
             foreach ($events as $index => $event) {
@@ -282,8 +321,14 @@ class SketchSessionService
     {
         if (! array_is_list($events) || count($events) < 1 || count($events) > 8 || strlen(json_encode($events) ?: '') > 120000) $this->fail('events', 'Send between 1 and 8 drawing events per request.');
         return array_map(function ($event): array {
-            if (! is_array($event) || ! in_array($event['type'] ?? null, ['stroke', 'clear'], true)) $this->fail('events', 'Invalid drawing event.');
+            if (! is_array($event) || ! in_array($event['type'] ?? null, ['stroke', 'clear', 'undo'], true)) $this->fail('events', 'Invalid drawing event.');
             if ($event['type'] === 'clear') return ['type' => 'clear'];
+            $strokeId = $event['stroke_id'] ?? null;
+            if (($strokeId !== null || $event['type'] === 'undo')
+                && (! is_string($strokeId) || ! preg_match('/^[a-zA-Z0-9_-]{8,64}$/D', $strokeId))) {
+                $this->fail('events', 'A valid stroke identifier is required.');
+            }
+            if ($event['type'] === 'undo') return ['type' => 'undo', 'stroke_id' => $strokeId];
             $points = $event['points'] ?? null;
             $width = $event['width'] ?? null;
             if (! is_array($points) || ! array_is_list($points) || count($points) < 1 || count($points) > 100
@@ -296,8 +341,30 @@ class SketchSessionService
                 }
                 return ['x' => round((float) $point['x'], 5), 'y' => round((float) $point['y'], 5)];
             }, $points);
-            return ['type' => 'stroke', 'points' => $normalized, 'color' => strtolower($event['color']), 'width' => round((float) $width, 2)];
+            $stroke = ['type' => 'stroke', 'points' => $normalized, 'color' => strtolower($event['color']), 'width' => round((float) $width, 2)];
+            if ($strokeId !== null) $stroke['stroke_id'] = $strokeId;
+            return $stroke;
         }, $events);
+    }
+
+    /** Validate only undo requests; normal stroke writes retain their cheap append path. */
+    private function validUndoTargets(SketchTurn $turn, array $events): bool
+    {
+        $active = [];
+        foreach ($turn->strokes()->get(['payload']) as $stroke) {
+            $event = $stroke->payload;
+            if ($event['type'] === 'clear') $active = [];
+            elseif ($event['type'] === 'undo') unset($active[$event['stroke_id']]);
+            elseif (isset($event['stroke_id'])) $active[$event['stroke_id']] = true;
+        }
+        foreach ($events as $event) {
+            if ($event['type'] === 'clear') $active = [];
+            elseif ($event['type'] === 'undo') {
+                if (! isset($active[$event['stroke_id']])) return false;
+                unset($active[$event['stroke_id']]);
+            } elseif (isset($event['stroke_id'])) $active[$event['stroke_id']] = true;
+        }
+        return true;
     }
 
     private function eventData($event): array
@@ -328,6 +395,7 @@ class SketchSessionService
     {
         if ($game->min_players < 2 || $game->max_players < $game->min_players || $game->max_players > 200) $this->fail('players', 'Sketch & Guess needs 2–200 players.');
         if ($game->time_limit_per_question < 1 || $game->time_limit_per_question > 300) $this->fail('time_limit_per_question', 'Choose a turn limit between 1 and 300 seconds.');
+        if ($game->letter_hint_max < 0 || $game->letter_hint_max > 100) $this->fail('letter_hint_max', 'Choose between 0 and 100 hint letters.');
     }
 
     private function isOpen(GameSession $session, SketchTurn $turn, CarbonImmutable $now): bool

@@ -1,0 +1,68 @@
+/* Supplied Whitney fonts are bundled by Vite for the public build. */
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-Book.woff') format('woff');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-BookItalic.woff') format('woff');
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-Medium.woff') format('woff');
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-MediumItalic.woff') format('woff');
+    font-style: italic;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-Semibold.woff') format('woff');
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-SemiboldItalic.woff') format('woff');
+    font-style: italic;
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-Bold.woff') format('woff');
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Whitney';
+    src: url('../views/fonts/Whitney/Whitney-BoldItalic.woff') format('woff');
+    font-style: italic;
+    font-weight: 700;
+    font-display: swap;
+}
+
+:root {
+    --font-whitney: 'Whitney', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}

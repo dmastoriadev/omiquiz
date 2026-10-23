@@ -64,10 +64,15 @@ class GameController extends Controller
             $lockedGame = Game::query()->whereKey($game->getKey())->lockForUpdate()->firstOrFail();
             $lockedGame->update($data);
             $quiz->updateWaitingTimeLimits($lockedGame);
+            if ($lockedGame->isSketch()) {
+                // The game lock also serializes start/create against this edit.
+                $lockedGame->sessions()->where('status', 'waiting')->where('game_type', Game::TYPE_SKETCH)
+                    ->update(['letter_hint_max' => $lockedGame->letter_hint_max]);
+            }
         }, 3);
 
         return redirect()->route('admin.games.show', $game)
-            ->with('success', 'Game updated. Waiting sessions now use the saved time limit. Games already in progress keep their original timing.');
+            ->with('success', 'Game updated. Waiting sessions now use the saved time limit and sketch hint setting. Games already in progress keep their original settings.');
     }
 
     public function destroy(Game $game): RedirectResponse
@@ -87,6 +92,11 @@ class GameController extends Controller
             $request->merge(['game_type' => $game?->game_type ?? 'quiz']);
         }
         $type = $request->input('game_type');
+        if ($type !== Game::TYPE_SKETCH) {
+            $request->merge(['letter_hint_max' => 0]);
+        } elseif (! $request->exists('letter_hint_max')) {
+            $request->merge(['letter_hint_max' => $game?->letter_hint_max ?? 0]);
+        }
 
         return $request->validate([
             'game_type' => ['required', 'string', Rule::in($game ? [$game->game_type] : ['quiz', 'sketch'])],
@@ -95,6 +105,7 @@ class GameController extends Controller
             'min_players' => ['required', 'integer', $type === 'sketch' ? 'min:2' : 'min:1', 'max:200'],
             'max_players' => ['required', 'integer', $type === 'sketch' ? 'min:2' : 'min:1', 'max:200', 'gte:min_players'],
             'time_limit_per_question' => ['required', 'integer', 'min:1', 'max:300'],
+            'letter_hint_max' => ['required', 'integer', 'min:0', 'max:100'],
             'status' => ['required', Rule::in([
                 Game::STATUS_DRAFT,
                 Game::STATUS_ACTIVE,

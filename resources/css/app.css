@@ -1,16 +1,23 @@
+@import './whitney.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
     html {
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: var(--font-whitney);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
 
     body {
+        font-family: var(--font-whitney);
         @apply bg-slate-50 text-slate-900;
+    }
+
+    button, input, optgroup, select, textarea {
+        font-family: inherit;
     }
 
     [x-cloak] {
@@ -53,8 +60,8 @@
 .camp-world { position: absolute; inset: 0 auto auto 0; width: 100%; height: 100%; background: #08242b url('/images/omiquiz/camp-lobby.png') left bottom / var(--camp-panel-width, 1040px) 100% repeat-x; transform-origin: top left; will-change: transform; }
 .camp-world::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(1,13,19,.28), rgba(1,13,19,.02) 42%, rgba(0,15,18,.12)); }
 .camp-heading { position: absolute; z-index: 4; inset: 0 0 auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem; padding: 1.6rem 2rem 2rem; background: linear-gradient(180deg, rgba(1,16,23,.58), transparent); color: #fff5d7; pointer-events: none; text-shadow: 0 2px 4px #092220, 0 0 18px rgba(0,0,0,.5); }
-.camp-heading h2 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.7rem, 2.7vw, 2.6rem); font-weight: 700; line-height: 1.1; letter-spacing: -.035em; }
-.camp-wordmark { flex: none; text-align: center; font-family: Georgia, 'Times New Roman', serif; font-size: 1rem; font-weight: 700; }
+.camp-heading h2 { margin: 0; font-family: var(--font-whitney); font-size: clamp(1.7rem, 2.7vw, 2.6rem); font-weight: 700; line-height: 1.1; letter-spacing: -.035em; }
+.camp-wordmark { flex: none; text-align: center; font-family: var(--font-whitney); font-size: 1rem; font-weight: 700; }
 .camp-wordmark span { display: block; margin-top: .1rem; color: #e7cb83; font-size: 1rem; line-height: 1; }
 .camp-grid { position: absolute; inset: 0; }
 .camp-cell { position: absolute; display: flex; width: 110px; height: 108px; align-items: center; justify-content: center; transform: translate(-50%, -50%); }
@@ -80,7 +87,7 @@
 .camp-focus-button > span { color: #f2d38a; font-size: 1.1rem; line-height: 1; }
 .camp-focus-button:hover { background: #21443c; }
 .camp-focus-button:focus-visible { outline: 2px solid #ffe1a0; outline-offset: 3px; }
-.camp-empty { position: absolute; left: 1.5rem; right: 1.5rem; bottom: 25%; color: #fff5d7; font-family: Georgia, 'Times New Roman', serif; font-size: 1.1rem; text-align: center; text-shadow: 0 2px 5px #000; }
+.camp-empty { position: absolute; left: 1.5rem; right: 1.5rem; bottom: 25%; color: #fff5d7; font-family: var(--font-whitney); font-size: 1.1rem; text-align: center; text-shadow: 0 2px 5px #000; }
 .camp-footer { display: flex; align-items: center; justify-content: space-between; gap: 1.2rem; margin-top: .85rem; padding: 1.15rem 1.5rem; border: 1px solid #e3e8f2; border-radius: 20px; background: rgba(255,255,255,.95); }
 .camp-avatar-stack { display: flex; flex: none; padding-left: 0; }
 .camp-avatar-stack img, .camp-avatar-stack span { display: flex; width: 42px; height: 42px; flex: none; align-items: center; justify-content: center; margin-left: -12px; border: 2px solid #fff; border-radius: 50%; background: #e9edf7; color: #5b627e; font-size: .85rem; font-weight: 700; }
@@ -152,7 +159,7 @@
 .round-board::after { content: '✦'; position: absolute; z-index: -1; top: 17px; right: 125px; color: rgba(235, 193, 103, .25); font-size: 64px; pointer-events: none; }
 .round-board-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 5px 17px; }
 .round-board-eyebrow { color: #c9aa6b; font-size: .65rem; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
-.round-board-heading h2 { margin-top: 3px; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.65rem, 2.8vw, 2.35rem); font-weight: 700; line-height: 1.12; letter-spacing: -.025em; }
+.round-board-heading h2 { margin-top: 3px; font-family: var(--font-whitney); font-size: clamp(1.65rem, 2.8vw, 2.35rem); font-weight: 700; line-height: 1.12; letter-spacing: -.025em; }
 .round-board-timer { display: flex; flex: none; width: 53px; height: 53px; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(229, 185, 93, .6); border-radius: 15px; background: rgba(9, 25, 26, .85); box-shadow: inset 0 0 14px rgba(224, 181, 83, .1); }
 .round-board-timer > span:first-child { font-size: 1.5rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .round-board-timer > span:last-child { margin-top: 3px; color: #c5ad7d; font-size: .6rem; text-transform: uppercase; }
@@ -163,7 +170,7 @@
 .round-rank-row--you { outline: 1px solid rgba(245, 219, 147, .55); outline-offset: -4px; }
 .round-rank-place { display: flex; min-width: 0; flex-direction: column; align-items: center; color: #d2c9ad; font-size: .95rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; }
 .round-rank-row--first .round-rank-place { color: #f9dc86; }
-.round-rank-crown { margin-bottom: 1px; font-family: Georgia, 'Times New Roman', serif; font-size: 20px; }
+.round-rank-crown { margin-bottom: 1px; font-family: var(--font-whitney); font-size: 20px; }
 .round-rank-avatar { display: flex; height: 64px; align-items: center; justify-content: center; }
 .round-rank-avatar img { width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .35)); }
 .round-rank-person { min-width: 0; }
@@ -241,12 +248,12 @@
 .final-camp-hero::before { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg, rgba(2,18,21,.62), rgba(3,25,27,.1) 65%, rgba(4,26,26,.18)); }
 .final-camp-hero-copy { text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,.45); }
 .final-camp-eyebrow { color: #eed396; font-size: .68rem; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; }
-.final-camp-hero h2 { margin-top: 6px; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.2rem, 4vw, 3.7rem); font-weight: 700; line-height: 1.1; letter-spacing: -.03em; }
+.final-camp-hero h2 { margin-top: 6px; font-family: var(--font-whitney); font-size: clamp(2.2rem, 4vw, 3.7rem); font-weight: 700; line-height: 1.1; letter-spacing: -.03em; }
 .final-camp-subtitle { margin-top: 9px; color: #efe3c3; font-size: .9rem; }
 .final-camp-count { display: inline-block; margin-top: 15px; padding: 5px 12px; border: 1px solid rgba(225,190,117,.55); border-radius: 999px; background: rgba(8,35,34,.7); color: #f4dfaa; font-size: .67rem; font-weight: 600; }
 .final-camp-body { padding: 22px; background: linear-gradient(180deg, #103534, #072825); }
 .final-camp-intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 4px 18px; }
-.final-camp-intro h3 { color: #f5e0ac; font-family: Georgia, 'Times New Roman', serif; font-size: 1.4rem; font-weight: 700; }
+.final-camp-intro h3 { color: #f5e0ac; font-family: var(--font-whitney); font-size: 1.4rem; font-weight: 700; }
 .final-camp-intro p { margin-top: 4px; color: #b6c9ba; font-size: .72rem; line-height: 1.6; }
 .final-camp-flourish { flex: none; color: #d3b16f; font-size: 1.8rem; }
 .final-camp-list { display: grid; gap: 12px; }
@@ -255,7 +262,7 @@
 .final-camp-row--you { outline: 1px solid rgba(246,224,157,.55); outline-offset: -5px; }
 .final-camp-rank { display: flex; min-width: 0; flex-direction: column; align-items: center; color: #d1d2bc; font-size: 1rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .final-camp-row--winner .final-camp-rank { color: #ffe09a; }
-.final-camp-crown { margin-bottom: 3px; font-family: Georgia, 'Times New Roman', serif; font-size: 25px; }
+.final-camp-crown { margin-bottom: 3px; font-family: var(--font-whitney); font-size: 25px; }
 .final-camp-avatar { display: flex; align-items: center; justify-content: center; min-width: 0; height: 74px; }
 .final-camp-avatar img { width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(0,0,0,.32)); }
 .final-camp-person { min-width: 0; }
@@ -308,7 +315,7 @@
 .sketch-game { width: 100%; max-width: 1040px; margin: 0 auto 24px; overflow: hidden; border: 1px solid #b7a067; border-radius: 22px; background: #0b302f; color: #fff0cd; box-shadow: 0 8px 24px rgba(8,40,40,.1); }
 .sketch-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 21px 24px; background: #103a37; }
 .sketch-eyebrow { color: #d9be85; font-size: .65rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
-.sketch-heading h2 { margin-top: 5px; overflow-wrap: anywhere; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; line-height: 1.2; }
+.sketch-heading h2 { margin-top: 5px; overflow-wrap: anywhere; font-family: var(--font-whitney); font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; line-height: 1.2; }
 .sketch-role { margin-top: 6px; color: #bfcec0; font-size: .75rem; line-height: 1.6; }
 .sketch-timer { display: flex; width: 66px; height: 66px; flex: none; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #c2a56d; border-radius: 16px; background: #082625; color: #ffe3a2; }
 .sketch-timer > span:first-child { font-size: 1.65rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -379,4 +386,11 @@
     .sketch-guess-form button { padding-inline: 11px; font-size: .75rem; }
     .sketch-error { margin-inline: 10px; }
     .sketch-turn-order { margin: 0 10px 12px; }
+}
+
+/* Keep pages using Tailwind's font-sans utility on the same supplied face. */
+@layer utilities {
+    .font-sans {
+        font-family: var(--font-whitney);
+    }
 }

@@ -23,7 +23,7 @@ class SketchStatePresenter
             // The waiting bank can contain 2,000 words; none belongs in a state poll.
             $session = GameSession::query()->select([
                 'id', 'game_type', 'status', 'game_title', 'min_players', 'max_players',
-                'time_limit_per_question', 'total_questions', 'current_question_position',
+                'time_limit_per_question', 'letter_hint_max', 'total_questions', 'current_question_position',
             ])->lockForUpdate()->findOrFail($session->id);
             if ($player) $player = $session->players()->findOrFail($player->id);
             $players = $session->players()->orderBy('joined_at')->orderBy('id')->get();
@@ -78,6 +78,20 @@ class SketchStatePresenter
                     'guessed' => $player && in_array($player->id, $guessedIds), 'correct_count' => count($guessedIds),
                     'eligible_guessers' => max(0, $players->count() - 1),
                     'can_draw' => $phase === 'drawing' && $isDrawer && CarbonImmutable::now()->lessThan($turn->deadline_at),
+                    'hint' => $turn->hint_revealed_at ? $turn->letter_hint : null,
+                    'hint_available' => $turn->letter_hint !== null,
+                    'hint_revealed' => $turn->hint_revealed_at !== null,
+                    'can_reveal_hint' => $phase === 'drawing' && $isDrawer && $turn->letter_hint !== null
+                        && ! $turn->hint_revealed_at && CarbonImmutable::now()->lessThan($turn->deadline_at),
+                    'guesses' => $turn->guessMessages()->orderByDesc('id')->limit(50)->get()
+                        ->reverse()->values()->map(function ($message) use ($playersById): array {
+                            $guesser = $playersById->get($message->game_session_player_id);
+                            return [
+                                'id' => $message->id, 'public_id' => $guesser?->public_id,
+                                'name' => $guesser?->display_name, 'is_correct' => $message->is_correct,
+                                'text' => $message->is_correct ? null : $message->text,
+                            ];
+                        })->all(),
                     'turn_order' => $turnOrder->map(function ($t) use ($playersById): array {
                         $drawer = $playersById->get($t->drawer_id);
                         return ['public_id' => $drawer?->public_id, 'name' => $drawer?->display_name, 'position' => $t->position];
@@ -91,6 +105,7 @@ class SketchStatePresenter
                 'game_type' => Game::TYPE_SKETCH, 'status' => $session->status, 'phase' => $phase, 'title' => $session->game_title,
                 'min_players' => $session->min_players, 'max_players' => $session->max_players,
                 'time_limit_per_question' => $session->time_limit_per_question,
+                'letter_hint_max' => $session->letter_hint_max,
                 'player_count' => $players->count(), 'ready_count' => $players->where('is_ready', true)->count(),
                 'total_questions' => $session->total_questions, 'current_position' => $session->current_question_position,
                 'server_now' => CarbonImmutable::now()->toISOString(), 'question' => null, 'sketch' => $sketch,

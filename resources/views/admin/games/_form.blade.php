@@ -17,9 +17,15 @@
             <div><label for="max_players" class="oq-label">Maximum players</label><input id="max_players" type="number" name="max_players" value="{{ old('max_players', $game->max_players ?? 50) }}" :min="gameType === 'sketch' ? 2 : 1" max="200" required class="oq-input"></div>
             <div><label for="time_limit_per_question" class="oq-label" x-text="gameType === 'sketch' ? 'Seconds per drawing turn' : 'Seconds per question'">Seconds per question</label><input id="time_limit_per_question" type="number" name="time_limit_per_question" value="{{ old('time_limit_per_question', $game->time_limit_per_question ?? 30) }}" min="1" max="300" required class="oq-input"><p class="mt-2 text-xs leading-5 text-slate-500">Applies to new and waiting sessions. Timing stays fixed once a session starts.</p></div>
         </div>
+        <div x-show="gameType === 'sketch'" x-cloak>
+            <label for="letter_hint_max" class="oq-label">Maximum hint letters</label>
+            <input id="letter_hint_max" type="number" name="letter_hint_max" value="{{ old('letter_hint_max', $game->letter_hint_max ?? 0) }}" min="0" max="100" step="1" required :disabled="gameType !== 'sketch'" class="oq-input max-w-xs" aria-describedby="letter-hint-help">
+            <p id="letter-hint-help" class="mt-2 text-xs leading-5 text-slate-500">0 disables hints. The drawer can press Hint before, during or after drawing while the turn is open. Everyone sees up to this many random letters, with at least one letter hidden. For example, 2 letters could reveal <span class="font-semibold">S_a__</span> for Shark.</p>
+            <p class="mt-1 text-xs leading-5 text-slate-500">Applies to new and waiting sessions. Hints stay fixed once a session starts.</p>
+        </div>
         <p class="text-xs leading-5 text-slate-500">The host can start when the minimum number of players has joined. Each question or drawing turn runs for the full time limit.</p>
         <div><label for="status" class="oq-label">Status</label><select id="status" name="status" class="oq-input">@foreach (['draft' => 'Draft', 'active' => 'Active', 'archived' => 'Archived'] as $value => $label)<option value="{{ $value }}" @selected(old('status', $game->status ?? 'draft') === $value)>{{ $label }}</option>@endforeach</select><p class="mt-2 text-xs text-slate-500">Set the game to Active when you are ready to create sessions.</p></div>
-        @if ($method !== 'POST')<p class="rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-500">Time-limit edits also apply to waiting sessions. Other changes apply to new sessions. Existing sessions retain their copied questions or words and player limits.</p>@endif
+        @if ($method !== 'POST')<p class="rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-500">Time-limit and hint-setting edits also apply to waiting sessions. Other changes apply to new sessions. Existing sessions retain their copied questions or words and player limits.</p>@endif
     </div>
     <div class="mt-8 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-6"><a href="{{ $game->exists ? route('admin.games.show', $game) : route('admin.games.index') }}" class="oq-button-secondary">Cancel</a><button type="submit" class="oq-button-primary">{{ $method === 'POST' ? 'Create game' : 'Save changes' }}</button></div>
 </form>

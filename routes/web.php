@@ -41,6 +41,7 @@ Route::prefix('play/{session}')->name('play.')->middleware(QuizNoCache::class)->
     Route::post('/ready', [PlayController::class, 'ready'])->middleware('throttle:quiz-answer')->block(10, 10)->name('ready');
     Route::post('/answers', [PlayController::class, 'answer'])->middleware('throttle:quiz-answer')->block(10, 10)->name('answer');
     Route::post('/sketch/guess', [PlayController::class, 'guess'])->middleware('throttle:sketch-guess')->block(10, 10)->name('sketch.guess');
+    Route::post('/sketch/hint', [PlayController::class, 'hint'])->middleware('throttle:quiz-answer')->block(10, 10)->name('sketch.hint');
     Route::post('/sketch/drawing', [PlayController::class, 'draw'])->middleware('throttle:sketch-draw')->block(10, 10)->name('sketch.draw');
 });
 

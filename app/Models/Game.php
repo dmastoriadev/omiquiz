@@ -23,7 +23,7 @@ class Game extends Model
 
     protected $fillable = [
         'title', 'description', 'min_players', 'max_players',
-        'time_limit_per_question', 'status', 'game_type',
+        'time_limit_per_question', 'letter_hint_max', 'status', 'game_type',
     ];
 
     protected $attributes = [
@@ -31,6 +31,7 @@ class Game extends Model
         'min_players' => 1,
         'max_players' => 50,
         'time_limit_per_question' => 30,
+        'letter_hint_max' => 0,
         'status' => self::STATUS_DRAFT,
     ];
 
@@ -40,6 +41,7 @@ class Game extends Model
             'min_players' => 'integer',
             'max_players' => 'integer',
             'time_limit_per_question' => 'integer',
+            'letter_hint_max' => 'integer',
         ];
     }
 
