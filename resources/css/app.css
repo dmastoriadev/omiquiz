@@ -156,7 +156,6 @@
 .party-float { animation: camp-float var(--float-duration, 5s) ease-in-out var(--float-delay, 0s) infinite alternate; will-change: transform; }
 .round-board { --rank-step: 82px; position: relative; isolation: isolate; width: 100%; max-width: 900px; margin-inline: auto; overflow: hidden; border: 1px solid #c69a48; border-radius: 24px; padding: 22px; color: #f9ebc7; background: #08282c url('/images/omiquiz/camp-lobby.png') center / cover; box-shadow: inset 0 0 0 5px rgba(202, 165, 88, .08), 0 12px 32px rgba(8, 40, 44, .12); }
 .round-board::before { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(145deg, rgba(4, 21, 24, .94), rgba(7, 40, 43, .82) 60%, rgba(45, 36, 15, .83)); }
-.round-board::after { content: '✦'; position: absolute; z-index: -1; top: 17px; right: 125px; color: rgba(235, 193, 103, .25); font-size: 64px; pointer-events: none; }
 .round-board-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 5px 17px; }
 .round-board-eyebrow { color: #c9aa6b; font-size: .65rem; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
 .round-board-heading h2 { margin-top: 3px; font-family: var(--font-whitney); font-size: clamp(1.65rem, 2.8vw, 2.35rem); font-weight: 700; line-height: 1.12; letter-spacing: -.025em; }
@@ -185,7 +184,6 @@
 .round-board-footer button { flex: none; color: #e5ca85; font-size: .67rem; font-weight: 600; }
 .round-board-footer button:focus-visible { outline: 2px solid #eed598; outline-offset: 4px; border-radius: 3px; }
 .round-board--transition { display: flex; min-height: 200px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
-.round-transition-spark { color: #e6c475; font-size: 2rem; }
 .round-board[data-rank-ready="true"] .round-rank-row--rising { animation: rank-victory-glow 1.3s ease-out; }
 @keyframes rank-victory-glow { 0%, 50% { border-color: #f8d578; box-shadow: inset 0 0 20px rgba(255, 219, 123, .2), 0 0 12px rgba(255, 219, 123, .17); } 100% { box-shadow: none; } }
 [data-motion-paused="true"] .round-rank-row { transition: none; animation: none !important; transform: translate3d(0, calc(var(--rank-to, 0) * var(--rank-step)), 0); }
@@ -255,7 +253,6 @@
 .final-camp-intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 4px 18px; }
 .final-camp-intro h3 { color: #f5e0ac; font-family: var(--font-whitney); font-size: 1.4rem; font-weight: 700; }
 .final-camp-intro p { margin-top: 4px; color: #b6c9ba; font-size: .72rem; line-height: 1.6; }
-.final-camp-flourish { flex: none; color: #d3b16f; font-size: 1.8rem; }
 .final-camp-list { display: grid; gap: 12px; }
 .final-camp-row { display: grid; grid-template-columns: 42px 72px minmax(0, 1fr) minmax(85px, auto); align-items: center; gap: 8px 15px; padding: 15px 18px 14px 12px; border: 1px solid rgba(172,194,170,.27); border-radius: 16px; background: rgba(14,47,45,.96); }
 .final-camp-row--winner { border-color: #d9b45f; background: #423c23; box-shadow: inset 0 0 25px rgba(245,208,110,.06); }
@@ -441,3 +438,8 @@
     .bingo-card-status { font-size: .6rem; }
     .bingo-card-letters { font-size: 1.25rem; }
 }
+
+/* Quiz and Sketch awards follow the displayed competition rank, including ties. */
+.podium-crown--gold { color: #f2cd70; }
+.podium-crown--silver { color: #d6dce5; }
+.podium-crown--bronze { color: #d9a478; }

@@ -19,7 +19,7 @@
                 </template>
             </div>
         </div>
-        <div class="camp-heading"><h2>Waiting for other players</h2><p class="camp-wordmark">Camp omiquiz<span aria-hidden="true">✦</span></p></div>
+        <div class="camp-heading"><h2>Waiting for other players</h2><p class="camp-wordmark">Camp omiquiz</p></div>
     </section>
     <div class="camp-navigation" @pointerdown.stop @keydown.stop>
         <p id="camp-navigation-help">Drag to explore the camp</p>

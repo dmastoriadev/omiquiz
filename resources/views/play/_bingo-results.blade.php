@@ -1,7 +1,7 @@
 <section x-show="state.game_type === 'bingo' && state.status === 'completed'" @if (($state['status'] ?? '') !== 'completed') style="display: none" @endif class="final-camp" aria-label="Reverse Bingo final standings">
     <header class="final-camp-hero"><div class="final-camp-hero-copy"><p class="final-camp-eyebrow">Reverse Bingo · Final standings</p><h2>One lucky survivor</h2><p class="final-camp-subtitle" x-text="'Final number called: ' + (state.bingo?.last_number ?? '—')"></p><span class="final-camp-count">One untouched card remains</span></div></header>
     <div class="final-camp-body">
-        <div class="final-camp-intro"><div><h3>Top 5 survivors</h3><p>The last active card wins. The full party standings follow below.</p></div><span class="final-camp-flourish" aria-hidden="true">✦</span></div>
+        <div class="final-camp-intro"><div><h3>Top 5 survivors</h3><p>The last active card wins. The full party standings follow below.</p></div></div>
         @php
             $bingoWinnerId = collect($state['results'] ?? [])->firstWhere('rank', 1)['public_id'] ?? null;
             $bingoWinner = collect($state['players'] ?? [])->firstWhere('public_id', $bingoWinnerId);
