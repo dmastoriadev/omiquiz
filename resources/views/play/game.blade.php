@@ -2,7 +2,7 @@
 @section('title', $session->game_title)
 @section('page-width', 'max-w-none')
 @section('content')
-    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('play.state', $session), 'answer' => route('play.answer', $session), 'profile' => route('play.profile', $session), 'ready' => route('play.ready', $session)]))" :data-motion-paused="motionPaused ? 'true' : 'false'">
+    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('play.state', $session), 'answer' => route('play.answer', $session), 'profile' => route('play.profile', $session), 'ready' => route('play.ready', $session), 'guess' => route('play.sketch.guess', $session), 'drawingWrite' => route('play.sketch.draw', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
         <div class="spectator-heading">
             <div class="min-w-0"><p class="spectator-eyebrow" x-text="state.status === 'waiting' ? 'Player view / Waiting lobby' : 'Player view / ' + statusLabel"></p><h1 class="mt-1 break-words text-3xl font-bold tracking-tight sm:text-4xl">{{ $session->game_title }}</h1></div>
             <span class="spectator-status"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span><span x-text="state.status === 'waiting' ? 'Waiting for host' : statusLabel"></span></span>
@@ -12,6 +12,7 @@
         @include('play._camp', ['playerView' => true])
         <div class="player-game-content" x-show="state.status !== 'waiting'" x-cloak>
             @include('play._round-leaderboard')
+            @if ($session->game_type === 'sketch')@include('play._sketch')@endif
             <section x-show="isQuestionPhase" class="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-white px-5 py-3" aria-label="Your player profile"><img :src="state.player?.profile?.avatar_url" alt="Your assigned avatar" width="44" height="44" class="h-11 w-11 shrink-0 rounded-xl bg-indigo-50"><div class="min-w-0 flex-1"><p class="text-xs text-slate-400">Playing as</p><h2 class="break-words text-sm font-semibold" x-text="state.player?.name"></h2></div><p class="text-xs text-slate-400" x-text="state.player?.gender || 'Not specified'"></p><a href="{{ route('public.sessions.show', $session) }}" target="_blank" rel="noopener" class="text-xs font-semibold text-indigo-600">Spectator view ↗</a></section>
         <section x-show="isQuestionPhase" x-cloak class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <div class="p-6 sm:p-8"><div class="flex items-center justify-between gap-4"><p class="text-xs font-semibold uppercase tracking-widest text-indigo-600" x-text="'Question ' + state.current_position + ' of ' + state.total_questions"></p><p class="rounded-full px-4 py-2 text-2xl font-semibold tabular-nums" :class="remainingSeconds <= 5 ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-700'"><span x-text="remainingSeconds"></span><span class="ml-1 text-xs font-normal">sec</span></p></div>

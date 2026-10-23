@@ -15,6 +15,7 @@ class QuestionImportController extends Controller
 {
     public function store(Request $request, Game $game, QuestionCsvImporter $importer): RedirectResponse
     {
+        abort_unless($game->game_type === 'quiz', 404);
         $request->validate([
             'csv' => ['required', 'file', 'max:2048', 'extensions:csv'],
         ]);
@@ -27,6 +28,7 @@ class QuestionImportController extends Controller
 
     public function template(Game $game): StreamedResponse
     {
+        abort_unless($game->game_type === 'quiz', 404);
         return response()->streamDownload(function (): void {
             $output = fopen('php://output', 'wb');
 
@@ -56,6 +58,7 @@ class QuestionImportController extends Controller
 
     public function destroy(Game $game, Question $question): RedirectResponse
     {
+        abort_unless($game->game_type === 'quiz', 404);
         abort_unless((int) $question->game_id === (int) $game->getKey(), 404);
 
         DB::transaction(function () use ($game, $question): void {

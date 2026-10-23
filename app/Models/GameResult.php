@@ -12,7 +12,7 @@ class GameResult extends Model
 
     // Written by the completion transaction, never from a player's request body.
     protected $fillable = [
-        'game_session_id', 'player_name', 'player_email', 'total_score',
+        'guess_points', 'draw_points', 'game_session_id', 'player_name', 'player_email', 'total_score',
         'correct_answers', 'wrong_answers', 'unanswered_questions',
         'total_questions', 'total_response_time_ms', 'rank', 'finalized_at',
     ];
@@ -31,6 +31,7 @@ class GameResult extends Model
     protected function casts(): array
     {
         return [
+            'guess_points' => 'integer', 'draw_points' => 'integer',
             'total_score' => 'integer',
             'correct_answers' => 'integer',
             'wrong_answers' => 'integer',

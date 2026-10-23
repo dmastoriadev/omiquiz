@@ -303,3 +303,80 @@
 @media (max-width: 359px) {
     .final-camp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Sketch & Guess uses one logical canvas on every screen size. */
+.sketch-game { width: 100%; max-width: 1040px; margin: 0 auto 24px; overflow: hidden; border: 1px solid #b7a067; border-radius: 22px; background: #0b302f; color: #fff0cd; box-shadow: 0 8px 24px rgba(8,40,40,.1); }
+.sketch-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 21px 24px; background: #103a37; }
+.sketch-eyebrow { color: #d9be85; font-size: .65rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.sketch-heading h2 { margin-top: 5px; overflow-wrap: anywhere; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; line-height: 1.2; }
+.sketch-role { margin-top: 6px; color: #bfcec0; font-size: .75rem; line-height: 1.6; }
+.sketch-timer { display: flex; width: 66px; height: 66px; flex: none; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #c2a56d; border-radius: 16px; background: #082625; color: #ffe3a2; }
+.sketch-timer > span:first-child { font-size: 1.65rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.sketch-timer > span:last-child { margin-top: 5px; font-size: .58rem; text-transform: uppercase; }
+.sketch-timer--urgent { border-color: #ec9d7e; background: #633a2c; color: #ffe0cb; }
+.sketch-prompt { margin: 16px 18px 0; border: 1px solid #b99954; border-radius: 13px; padding: 12px 16px; background: #484025; }
+.sketch-prompt > span { display: block; color: #dfc98f; font-size: .6rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.sketch-prompt strong { display: block; margin-top: 3px; color: #fff3cd; font-size: 1.3rem; font-weight: 600; overflow-wrap: anywhere; }
+.sketch-prompt p { margin-top: 4px; color: #d7caab; font-size: .7rem; line-height: 1.5; }
+.sketch-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; }
+.sketch-palette { display: flex; flex-wrap: wrap; gap: 5px; }
+.sketch-color { display: flex; width: 38px; height: 42px; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 10px; background: var(--ink); color: #fff; box-shadow: inset 0 0 0 3px #0b302f; font-size: 14px; text-shadow: 0 1px 3px #000, 0 0 3px #000; touch-action: manipulation; }
+.sketch-color--selected { border-color: #ffe0a2; }
+.sketch-color:focus-visible, .sketch-tool:focus-visible, .sketch-brush-label select:focus-visible { outline: 2px solid #ffdfa0; outline-offset: 3px; }
+.sketch-color:disabled, .sketch-tool:disabled, .sketch-brush-label select:disabled { cursor: default; opacity: .45; }
+.sketch-tool-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sketch-brush-label { display: flex; align-items: center; gap: 7px; color: #c7d5c8; font-size: .68rem; }
+.sketch-brush-label select { min-height: 42px; border: 1px solid #6a8071; border-radius: 9px; padding: 7px 27px 7px 9px; background-color: #193c36; color: #f7edcf; font-size: 16px; }
+.sketch-tool { min-height: 42px; border: 1px solid #6a8071; border-radius: 9px; padding: 8px 11px; background: #193c36; color: #f7edcf; font-size: .72rem; font-weight: 600; touch-action: manipulation; }
+.sketch-tool--active { border-color: #dec183; background: #5a4a2b; }
+.sketch-canvas-frame { margin: 16px 18px 0; overflow: hidden; border: 3px solid #c1a76e; border-radius: 12px; background: #fff; line-height: 0; }
+.sketch-tools + .sketch-canvas-frame { margin-top: 0; }
+.sketch-canvas { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; background: #fff; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.sketch-canvas-frame--drawing .sketch-canvas { touch-action: none; cursor: crosshair; }
+.sketch-canvas-status { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 4px 12px; padding: 9px 20px 13px; color: #bdd0c1; font-size: .64rem; line-height: 1.6; }
+.sketch-canvas-status > span { flex: none; color: #dcceaa; }
+.sketch-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 18px 14px; border: 1px solid #b8846b; border-radius: 10px; padding: 12px; background: #593e30; color: #ffe3cf; font-size: .75rem; line-height: 1.6; }
+.sketch-answer-area { border-top: 1px solid #35554a; padding: 18px 20px; }
+.sketch-guess-form { display: flex; align-items: flex-end; gap: 10px; }
+.sketch-guess-form > div { min-width: 0; flex: 1; }
+.sketch-guess-form .oq-label { color: #e4ddc4; font-size: .72rem; }
+.sketch-guess-form input { min-height: 46px; color: #172b2b; font-size: 16px; }
+.sketch-guess-form button { min-height: 46px; flex: none; border: 1px solid #ebd198; background: #dfc086; color: #173731; }
+.sketch-guess-form button:hover { background: #efd19a; }
+.sketch-feedback { margin-top: 10px; color: #f7d58c; font-size: .8rem; line-height: 1.6; }
+.sketch-success { padding: 10px 12px; border: 1px solid #7cb895; border-radius: 10px; background: #204e3b; color: #d4ffe1; font-size: .85rem; font-weight: 600; }
+.sketch-help { margin-top: 9px; color: #b8caba; font-size: .68rem; line-height: 1.7; }
+.sketch-turn-order { margin: 0 18px 18px; border: 1px solid #426354; border-radius: 12px; background: #103630; }
+.sketch-turn-order summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px 12px; padding: 13px; color: #f2e0b4; font-size: .75rem; font-weight: 600; cursor: pointer; }
+.sketch-turn-order summary::after { content: '+'; margin-left: auto; font-size: 1rem; }
+.sketch-turn-order[open] summary::after { content: '−'; }
+.sketch-turn-order summary > span:last-child { color: #aebfaa; font-size: .63rem; font-weight: 400; }
+.sketch-turn-order ol { display: grid; max-height: 240px; overflow-y: auto; gap: 6px; padding: 0 10px 10px; }
+.sketch-turn-order li { display: flex; align-items: center; gap: 9px; border: 1px solid #365647; border-radius: 8px; padding: 8px; color: #c9d7c6; font-size: .72rem; }
+.sketch-turn-number { display: flex; min-width: 32px; height: 25px; padding-inline: 5px; flex: none; align-items: center; justify-content: center; border-radius: 6px; background: #254a3d; color: #decc9f; font-variant-numeric: tabular-nums; }
+.sketch-turn-tag { margin-left: auto; padding-left: 5px; color: #9fb69e; font-size: .6rem; }
+.sketch-turn-order li.sketch-turn-order--current { border-color: #d4b06e; background: #494029; color: #fff1c5; }
+.sketch-turn-order--current .sketch-turn-tag { color: #ffe09a; }
+.sketch-turn-order--done .sketch-turn-number { color: #9bbfa6; }
+.sketch-word-reveal { margin: -3px 5px 17px; border: 1px solid #6d764f; border-radius: 10px; padding: 10px 12px; color: #c9d0b5; font-size: .8rem; }
+.sketch-word-reveal strong { margin-left: 5px; color: #ffe2a0; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+    .sketch-game { border-radius: 16px; }
+    .sketch-heading { gap: 12px; padding: 17px 13px; }
+    .sketch-eyebrow { font-size: .57rem; }
+    .sketch-role { font-size: .68rem; }
+    .sketch-timer { width: 53px; height: 59px; border-radius: 12px; }
+    .sketch-timer > span:first-child { font-size: 1.45rem; }
+    .sketch-timer > span:last-child { font-size: .5rem; }
+    .sketch-prompt { margin: 12px 10px 0; padding: 10px 12px; }
+    .sketch-tools { gap: 10px; padding: 12px 10px; }
+    .sketch-color { width: 37px; min-height: 44px; }
+    .sketch-tool, .sketch-brush-label select { min-height: 44px; }
+    .sketch-canvas-frame { margin: 12px 7px 0; border-width: 2px; border-radius: 8px; }
+    .sketch-canvas-status { padding-inline: 10px; font-size: .59rem; }
+    .sketch-answer-area { padding: 13px 12px; }
+    .sketch-guess-form { gap: 8px; }
+    .sketch-guess-form button { padding-inline: 11px; font-size: .75rem; }
+    .sketch-error { margin-inline: 10px; }
+    .sketch-turn-order { margin: 0 10px 12px; }
+}

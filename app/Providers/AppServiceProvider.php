@@ -26,5 +26,11 @@ class AppServiceProvider extends ServiceProvider
             ->by($request->session()->getId()));
         RateLimiter::for('quiz-join', fn (Request $request) => Limit::perMinute(10)
             ->by($request->session()->getId()));
+        RateLimiter::for('sketch-read', fn (Request $request) => Limit::perMinute(240)
+            ->by($request->session()->getId()));
+        RateLimiter::for('sketch-draw', fn (Request $request) => Limit::perMinute(600)
+            ->by($request->session()->getId()));
+        RateLimiter::for('sketch-guess', fn (Request $request) => Limit::perMinute(60)
+            ->by($request->session()->getId()));
     }
 }

@@ -13,6 +13,7 @@ class QuizStatePresenter
     /** Spectators see submission status for this question, never cumulative answer progress. */
     public function spectator(GameSession $session): array
     {
+        if ($session->isSketch()) return app(SketchStatePresenter::class)->spectator($session);
         $state = $this->present($session);
         unset($state['progress'], $state['leaderboard']);
         $state['players'] = array_map(fn ($person): array => array_intersect_key($person, array_flip([
@@ -25,6 +26,7 @@ class QuizStatePresenter
     /** Shared spectator/host/player state; personal fields exist only for that player. */
     public function present(GameSession $session, ?GameSessionPlayer $player = null): array
     {
+        if ($session->isSketch()) return app(SketchStatePresenter::class)->present($session, $player);
         return DB::transaction(function () use ($session, $player): array {
             $session = GameSession::query()->lockForUpdate()->findOrFail($session->id);
             if ($player) {
@@ -121,7 +123,7 @@ class QuizStatePresenter
                 unset($person);
             }
             return [
-                'status' => $session->status, 'phase' => $phase, 'title' => $session->game_title,
+                'game_type' => 'quiz', 'status' => $session->status, 'phase' => $phase, 'title' => $session->game_title,
                 'min_players' => $session->min_players, 'max_players' => $session->max_players,
                 'time_limit_per_question' => $session->time_limit_per_question,
                 'player_count' => $players->count(), 'ready_count' => $players->where('is_ready', true)->count(),

@@ -2,7 +2,7 @@
 @section('title', 'Watch '.$session->game_title)
 @section('page-width', 'max-w-none')
 @section('content')
-    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('public.sessions.state', $session)]))" :data-motion-paused="motionPaused ? 'true' : 'false'">
+    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('public.sessions.state', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
         <div class="spectator-heading">
             <div class="min-w-0"><p class="spectator-eyebrow" x-text="state.status === 'waiting' ? 'Spectator view / Waiting lobby' : 'Spectator view / ' + statusLabel"></p><h1 class="mt-1 break-words text-3xl font-bold tracking-tight sm:text-4xl">{{ $session->game_title }}</h1></div>
             <span class="spectator-status"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span><span x-text="state.status === 'waiting' ? 'Waiting for host' : statusLabel"></span></span>
@@ -11,6 +11,7 @@
 
         @include('play._camp', ['playerView' => false])
         @include('play._round-leaderboard')
+        @if ($session->game_type === 'sketch')@include('play._sketch')@endif
 
         <div x-show="isQuestionPhase" x-cloak class="space-y-6">
             <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">

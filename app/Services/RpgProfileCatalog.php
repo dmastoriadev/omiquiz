@@ -53,8 +53,9 @@ class RpgProfileCatalog
     public function profile(int $id): array
     {
         $profile = $this->identity($id);
-        $profile['avatar_url'] = route('rpg.avatar', ['profile' => $id]);
-        $profile['sprite_url'] = route('rpg.sprite', ['profile' => $id]);
+        // Inherit the page's origin and HTTPS scheme, including behind a TLS proxy.
+        $profile['avatar_url'] = route('rpg.avatar', ['profile' => $id], false);
+        $profile['sprite_url'] = route('rpg.sprite', ['profile' => $id], false);
 
         return $profile;
     }

@@ -6,6 +6,7 @@ use App\Models\GameSession;
 use App\Models\GameSessionPlayer;
 use App\Services\QuizSessionService;
 use App\Services\QuizStatePresenter;
+use App\Services\SketchSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -104,6 +105,41 @@ class PlayController extends Controller
         $this->sessions->answer($session, $player, (int) $validated['question_id'], $validated['option']);
 
         return response()->json($this->presenter->present($session, $player));
+    }
+
+    public function guess(Request $request, GameSession $session, SketchSessionService $sketch): JsonResponse
+    {
+        $player = $this->participant($request, $session);
+        abort_unless($player, 403, 'Reopen your invitation in the browser you used to join.');
+        $validated = $request->validate([
+            'turn_id' => ['required', 'integer', 'min:1'],
+            'guess' => ['required', 'string', 'max:100'],
+        ]);
+        $outcome = $sketch->guess($session, $player, (int) $validated['turn_id'], $validated['guess']);
+
+        return response()->json(['state' => $this->presenter->present($session, $player)] + $outcome);
+    }
+
+    public function draw(Request $request, GameSession $session, SketchSessionService $sketch): JsonResponse
+    {
+        $player = $this->participant($request, $session);
+        abort_unless($player, 403, 'Reopen your invitation in the browser you used to join.');
+        abort_if(strlen($request->getContent()) > 65536, 413, 'Send a smaller drawing batch.');
+        $validated = $request->validate([
+            'turn_id' => ['required', 'integer', 'min:1'],
+            'request_id' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
+            'events' => ['required', 'array', 'min:1', 'max:8'],
+            'events.*.type' => ['required', Rule::in(['stroke', 'clear'])],
+            'events.*.points' => ['sometimes', 'array', 'min:1', 'max:100'],
+            'events.*.points.*.x' => ['required', 'numeric', 'between:0,1'],
+            'events.*.points.*.y' => ['required', 'numeric', 'between:0,1'],
+            'events.*.color' => ['sometimes', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'events.*.width' => ['sometimes', 'numeric', 'between:1,20'],
+        ]);
+
+        return response()->json($sketch->appendDrawing(
+            $session, $player, (int) $validated['turn_id'], $validated['request_id'], $validated['events'],
+        ));
     }
 
     private function participant(Request $request, GameSession $session): ?GameSessionPlayer

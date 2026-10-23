@@ -1,13 +1,17 @@
 @extends('admin.layout')
 @section('title', $game->title)
 @section('content')
+    @php($isSketch = $game->game_type === 'sketch')
     <a href="{{ route('admin.games.index') }}" class="text-sm font-medium text-indigo-600">← Games</a>
     <div class="mb-7 mt-4 flex flex-wrap items-start justify-between gap-4">
-        <div class="min-w-0"><span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">{{ ucfirst($game->status) }}</span><h1 class="mt-3 break-words text-3xl font-semibold tracking-tight">{{ $game->title }}</h1><p class="mt-2 max-w-2xl whitespace-pre-line text-sm leading-6 text-slate-500">{{ $game->description }}</p></div>
+        <div class="min-w-0"><span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">{{ ucfirst($game->status) }}</span><span class="ml-2 text-xs font-semibold text-slate-500">{{ $isSketch ? 'Sketch & Guess' : 'Quiz' }}</span><h1 class="mt-3 break-words text-3xl font-semibold tracking-tight">{{ $game->title }}</h1><p class="mt-2 max-w-2xl whitespace-pre-line text-sm leading-6 text-slate-500">{{ $game->description }}</p></div>
         <a href="{{ route('admin.games.edit', $game) }}" class="oq-button-secondary">Edit settings</a>
     </div>
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
+            @if ($isSketch)
+                @include('admin.games._words')
+            @else
             <section class="rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 class="text-lg font-semibold">Upload questions</h2><p class="mt-2 text-sm leading-6 text-slate-500">Import a UTF-8 CSV with up to 500 questions. Columns A and B are required; C and D are optional. Use A, B, C, or D for the correct option.</p>
                 <a href="{{ route('admin.games.questions.template', $game) }}" class="mt-3 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-800">Download sample CSV ↓</a>
@@ -30,9 +34,10 @@
                 @endforelse
                 @if($questions->hasPages())<div class="border-t border-slate-100 p-5">{{ $questions->links() }}</div>@endif
             </section>
+            @endif
         </div>
         <div class="space-y-6">
-            <section class="rounded-2xl bg-slate-900 p-6 text-white"><p class="text-xs font-semibold uppercase tracking-widest text-indigo-300">Ready to play?</p><h2 class="mt-3 text-xl font-semibold">Create a session</h2><p class="mt-2 text-sm leading-6 text-slate-300">Get a unique join link, gather your players, and start the quiz.</p><dl class="my-6 space-y-3 text-sm"><div class="flex justify-between"><dt class="text-slate-400">Players</dt><dd>{{ $game->min_players }}–{{ $game->max_players }}</dd></div><div class="flex justify-between"><dt class="text-slate-400">Per question</dt><dd>{{ $game->time_limit_per_question }} seconds</dd></div></dl><form method="POST" action="{{ route('admin.games.sessions.store', $game) }}">@csrf<button type="submit" class="oq-button-primary w-full" @disabled($game->status !== 'active' || $questions->total() === 0)>Create session</button></form>@if($game->status !== 'active')<p class="mt-3 text-xs leading-5 text-slate-400">Set this game to Active in settings first.</p>@elseif($questions->total() === 0)<p class="mt-3 text-xs leading-5 text-slate-400">Add at least one active question first.</p>@endif</section>
+            <section class="rounded-2xl bg-slate-900 p-6 text-white"><p class="text-xs font-semibold uppercase tracking-widest text-indigo-300">Ready to play?</p><h2 class="mt-3 text-xl font-semibold">Create a session</h2><p class="mt-2 text-sm leading-6 text-slate-300">Get a unique join link, gather your players, and start the game.</p><dl class="my-6 space-y-3 text-sm"><div class="flex justify-between"><dt class="text-slate-400">Players</dt><dd>{{ $game->min_players }}–{{ $game->max_players }}</dd></div><div class="flex justify-between"><dt class="text-slate-400">{{ $isSketch ? 'Per drawing turn' : 'Per question' }}</dt><dd>{{ $game->time_limit_per_question }} seconds</dd></div></dl><form method="POST" action="{{ route('admin.games.sessions.store', $game) }}">@csrf<button type="submit" class="oq-button-primary w-full" @disabled($game->status !== 'active' || ($isSketch ? $words->total() : $questions->total()) === 0)>Create session</button></form>@if($game->status !== 'active')<p class="mt-3 text-xs leading-5 text-slate-400">Set this game to Active in settings first.</p>@elseif(($isSketch ? $words->total() : $questions->total()) === 0)<p class="mt-3 text-xs leading-5 text-slate-400">Add at least one {{ $isSketch ? 'drawing word' : 'active question' }} first.</p>@endif</section>
             <section class="rounded-2xl border border-slate-200 bg-white p-6"><h2 class="font-semibold">Recent sessions</h2><div class="mt-3 divide-y divide-slate-100">@forelse($sessions as $session)<a href="{{ route('admin.sessions.show', $session) }}" class="block py-3 text-sm hover:text-indigo-600"><span class="font-medium">{{ str($session->status)->replace('_', ' ')->title() }}</span><span class="mt-1 block text-xs text-slate-400">{{ $session->created_at?->utc()->format('M j, Y · H:i') }} UTC</span></a>@empty<p class="py-4 text-sm text-slate-400">No sessions yet.</p>@endforelse</div><a href="{{ route('admin.sessions.index', ['status' => 'all']) }}" class="mt-3 inline-block text-sm font-semibold text-indigo-600">View all sessions →</a></section>
             <form method="POST" action="{{ route('admin.games.destroy', $game) }}" x-data @submit="if (!confirm('Delete this game? Existing sessions and results will be kept.')) $event.preventDefault()">@csrf @method('DELETE')<button class="px-1 text-sm font-medium text-rose-600 hover:text-rose-800">Delete game</button></form>
         </div>

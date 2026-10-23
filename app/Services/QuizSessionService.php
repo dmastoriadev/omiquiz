@@ -20,6 +20,7 @@ class QuizSessionService
 
     public function create(Game $game, User $host): GameSession
     {
+        if ($game->isSketch()) return app(SketchSessionService::class)->create($game, $host);
         return DB::transaction(function () use ($game, $host): GameSession {
             $game = Game::query()->whereKey($game->getKey())->lockForUpdate()->first();
 
@@ -191,6 +192,7 @@ class QuizSessionService
 
     public function start(GameSession $session): GameSession
     {
+        if ($session->isSketch()) return app(SketchSessionService::class)->start($session);
         return DB::transaction(function () use ($session): GameSession {
             $gameId = GameSession::query()->whereKey($session->getKey())->value('game_id');
             $game = $gameId === null ? null
@@ -240,6 +242,7 @@ class QuizSessionService
 
     public function advance(GameSession $session): GameSession
     {
+        if ($session->isSketch()) return app(SketchSessionService::class)->advance($session);
         return DB::transaction(function () use ($session): GameSession {
             $session = $this->lockSession($session);
             $this->advanceLocked($session, $this->now());
@@ -250,6 +253,7 @@ class QuizSessionService
 
     public function answer(GameSession $session, GameSessionPlayer $player, int $questionId, string $option): GameAnswer
     {
+        if ($session->isSketch()) $this->fail('session', 'Use the guessing controls for this Sketch & Guess game.');
         $outcome = DB::transaction(function () use ($session, $player, $questionId, $option): array {
             $session = $this->lockSession($session);
             $now = $this->now();
@@ -318,6 +322,7 @@ class QuizSessionService
 
     public function cancel(GameSession $session): GameSession
     {
+        if ($session->isSketch()) return app(SketchSessionService::class)->cancel($session);
         $outcome = DB::transaction(function () use ($session): array {
             $session = $this->lockSession($session);
             $now = $this->now();

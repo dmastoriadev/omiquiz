@@ -13,16 +13,21 @@ class Game extends Model
 {
     use SoftDeletes;
 
+    public const TYPE_QUIZ = 'quiz';
+    public const TYPE_SKETCH = 'sketch';
+    public const TYPES = ['quiz' => 'Quiz', 'sketch' => 'Sketch & Guess'];
+
     public const STATUS_DRAFT = 'draft';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_ARCHIVED = 'archived';
 
     protected $fillable = [
         'title', 'description', 'min_players', 'max_players',
-        'time_limit_per_question', 'status',
+        'time_limit_per_question', 'status', 'game_type',
     ];
 
     protected $attributes = [
+        'game_type' => self::TYPE_QUIZ,
         'min_players' => 1,
         'max_players' => 50,
         'time_limit_per_question' => 30,
@@ -62,6 +67,13 @@ class Game extends Model
     public function questions(): HasMany
     {
         return $this->hasMany(Question::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function isSketch(): bool { return $this->game_type === self::TYPE_SKETCH; }
+
+    public function words(): HasMany
+    {
+        return $this->hasMany(SketchWord::class)->orderBy('position')->orderBy('id');
     }
 
     public function sessions(): HasMany

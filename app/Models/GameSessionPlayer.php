@@ -73,6 +73,9 @@ class GameSessionPlayer extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function sketchGuesses(): HasMany { return $this->hasMany(SketchGuess::class); }
+    public function drawnTurns(): HasMany { return $this->hasMany(SketchTurn::class, 'drawer_id'); }
+
     public function answers(): HasMany
     {
         return $this->hasMany(GameAnswer::class);

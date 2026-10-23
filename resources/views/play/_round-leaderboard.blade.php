@@ -1,8 +1,9 @@
 <section x-show="showRoundLeaderboard" x-cloak class="round-board" aria-label="Top five leaderboard" :data-rank-ready="leaderboardReady ? 'true' : 'false'">
     <header class="round-board-heading">
-        <div><p class="round-board-eyebrow" x-text="'Question ' + state.round_leaderboard?.question_position + ' complete'"></p><h2>Top 5 adventurers</h2></div>
+        <div><p class="round-board-eyebrow" x-text="(state.game_type === 'sketch' ? 'Turn ' : 'Question ') + state.round_leaderboard?.question_position + ' complete'"></p><h2>Top 5 adventurers</h2></div>
         <div class="round-board-timer" role="timer" aria-live="off"><span x-text="roundSeconds"></span><span>sec</span></div>
     </header>
+    <p x-show="state.game_type === 'sketch' && state.sketch?.revealed_word" class="sketch-word-reveal">The word was <strong x-text="state.sketch?.revealed_word"></strong></p>
     <div class="round-rank-list" :style="'--rank-count:' + Math.max(1, Math.min(5, leaderboardRows.length))" role="list" aria-label="Highest scoring players">
         <template x-for="entry in leaderboardRows.slice(0, 5)" :key="entry.public_id">
             <article class="round-rank-row" :class="{ 'round-rank-row--first': entry.position === 1, 'round-rank-row--rising': entry.movement > 0, 'round-rank-row--you': state.player?.public_id === entry.public_id }" :style="rankStyle(entry)" role="listitem" :aria-label="'Rank ' + entry.rank + ', ' + entry.name + ', ' + entry.score + ' points'">
@@ -13,6 +14,6 @@
             </article>
         </template>
     </div>
-    <footer class="round-board-footer"><p x-text="state.round_leaderboard?.is_final ? 'Final results in ' + roundSeconds + 's' : 'Next question in ' + roundSeconds + 's'"></p><button type="button" @click="toggleMotion()" :aria-pressed="motionPaused" x-text="motionPaused ? 'Resume motion' : 'Pause motion'"></button></footer>
+    <footer class="round-board-footer"><p x-text="state.round_leaderboard?.is_final ? 'Final results in ' + roundSeconds + 's' : (state.game_type === 'sketch' ? 'Next drawing turn in ' : 'Next question in ') + roundSeconds + 's'"></p><button type="button" @click="toggleMotion()" :aria-pressed="motionPaused" x-text="motionPaused ? 'Resume motion' : 'Pause motion'"></button></footer>
 </section>
-<section x-show="state.phase === 'leaderboard' && !showRoundLeaderboard" x-cloak class="round-board round-board--transition" role="status"><span class="round-transition-spark" aria-hidden="true">✦</span><p x-text="state.round_leaderboard?.is_final ? 'Preparing final results…' : 'Preparing the next question…'"></p></section>
+<section x-show="state.phase === 'leaderboard' && !showRoundLeaderboard" x-cloak class="round-board round-board--transition" role="status"><span class="round-transition-spark" aria-hidden="true">✦</span><p x-text="state.round_leaderboard?.is_final ? 'Preparing final results…' : state.game_type === 'sketch' ? 'Preparing the next drawing turn…' : 'Preparing the next question…'"></p></section>

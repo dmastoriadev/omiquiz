@@ -34,6 +34,7 @@ class ResultsCsvExporter
                     'total_score', 'correct_answers', 'wrong_answers', 'unanswered_questions',
                     'total_questions', 'total_response_time_ms', 'finalized_at',
                     'gender', 'rpg_profile_id', 'rpg_profile_name', 'rpg_profile_class',
+                    'game_type', 'guess_points', 'draw_points',
                 ], ',', '"', '');
 
                 foreach ($session->results()->with('player')->lazy(200) as $result) {
@@ -65,6 +66,9 @@ class ResultsCsvExporter
                         $result->player?->rpg_profile_id,
                         $profile['name'] ?? '',
                         $profile['class'] ?? '',
+                        $session->game_type,
+                        $result->guess_points,
+                        $result->draw_points,
                     ];
 
                     fputcsv($output, array_map($this->safeCell(...), $row), ',', '"', '');

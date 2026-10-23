@@ -75,12 +75,14 @@ export default function registerQuiz(Alpine) {
         },
 
         get remainingSeconds() {
-            if (!this.state.question?.deadline_at) return 0;
-            return Math.max(0, Math.ceil((Date.parse(this.state.question.deadline_at) - (this.now + this.serverOffset)) / 1000));
+            const deadline = this.state.game_type === 'sketch' ? this.state.sketch?.deadline_at : this.state.question?.deadline_at;
+            if (!deadline) return 0;
+            return Math.max(0, Math.ceil((Date.parse(deadline) - (this.now + this.serverOffset)) / 1000));
         },
 
         get statusLabel() {
             if (this.state.phase === 'leaderboard') return 'Top 5';
+            if (this.state.phase === 'drawing') return 'Sketch & Guess';
             return {waiting: 'Lobby', in_progress: 'Live quiz', completed: 'Finished', cancelled: 'Cancelled'}[this.state.status] || '';
         },
 
@@ -122,7 +124,7 @@ export default function registerQuiz(Alpine) {
             // Once a round closes, a late answer response cannot reopen it.
             if (Number(next.current_position) === Number(this.state.current_position)
                 && this.state.phase === 'leaderboard' && next.status === 'in_progress'
-                && (!next.phase || next.phase === 'question')) return;
+                && (!next.phase || ['question', 'drawing'].includes(next.phase))) return;
             const oldQuestion = this.state.question?.id;
             const campChanged = this.state.status !== next.status
                 || this.state.players?.length !== next.players?.length
@@ -559,10 +561,12 @@ export default function registerQuiz(Alpine) {
         },
 
         answeredCurrent(person) {
+            if (this.state.game_type === 'sketch') return this.state.phase === 'drawing' && !!this.state.sketch?.turn_id && person?.answered === true;
             return this.isQuestionPhase && !!this.state.question?.id && person?.answered === true;
         },
 
         checkKey(person) {
+            if (this.state.game_type === 'sketch') return `sketch:${this.state.sketch?.turn_id || 'none'}:${person.public_id}`;
             return `${this.state.question?.id || 'none'}:${person.public_id}`;
         },
 

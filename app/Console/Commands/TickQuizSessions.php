@@ -10,7 +10,7 @@ use Throwable;
 class TickQuizSessions extends Command
 {
     protected $signature = 'omiquiz:tick';
-    protected $description = 'Advance quiz deadlines and finalize results, including sessions with no connected browsers';
+    protected $description = 'Advance quiz and drawing deadlines and finalize results, including sessions with no connected browsers';
 
     public function handle(QuizSessionService $service): int
     {

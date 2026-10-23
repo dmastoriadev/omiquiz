@@ -18,7 +18,7 @@ class GameController extends Controller
         return view('admin.games.index', [
             'games' => Game::query()
                 ->with('creator')
-                ->withCount(['questions', 'sessions'])
+                ->withCount(['questions', 'words', 'sessions'])
                 ->latest()
                 ->paginate(15),
         ]);
@@ -34,14 +34,15 @@ class GameController extends Controller
         $game = $request->user()->quizGames()->create($this->validated($request));
 
         return redirect()->route('admin.games.show', $game)
-            ->with('success', 'Game created. Add its questions to prepare a session.');
+            ->with('success', 'Game created. Upload '.($game->game_type === 'sketch' ? 'drawing words' : 'questions').' to prepare a session.');
     }
 
     public function show(Game $game): View
     {
         return view('admin.games.show', [
-            'game' => $game->load('creator')->loadCount(['questions', 'sessions']),
+            'game' => $game->load('creator')->loadCount(['questions', 'words', 'sessions']),
             'questions' => $game->questions()->paginate(20)->withQueryString(),
+            'words' => $game->words()->orderBy('id')->paginate(20, ['*'], 'words_page')->withQueryString(),
             'sessions' => $game->sessions()
                 ->withCount(['players', 'results'])
                 ->latest()
@@ -57,7 +58,7 @@ class GameController extends Controller
 
     public function update(Request $request, Game $game, QuizSessionService $quiz): RedirectResponse
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request, $game);
 
         DB::transaction(function () use ($game, $data, $quiz): void {
             $lockedGame = Game::query()->whereKey($game->getKey())->lockForUpdate()->firstOrFail();
@@ -66,7 +67,7 @@ class GameController extends Controller
         }, 3);
 
         return redirect()->route('admin.games.show', $game)
-            ->with('success', 'Game updated. Waiting sessions now use the saved question time limit. Games already in progress keep their original timing.');
+            ->with('success', 'Game updated. Waiting sessions now use the saved time limit. Games already in progress keep their original timing.');
     }
 
     public function destroy(Game $game): RedirectResponse
@@ -79,13 +80,20 @@ class GameController extends Controller
             ->with('success', 'Game removed. Its session history and results have been retained.');
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Game $game = null): array
     {
+        // Older quiz forms can omit the category; an update must never reset it.
+        if (! $request->exists('game_type')) {
+            $request->merge(['game_type' => $game?->game_type ?? 'quiz']);
+        }
+        $type = $request->input('game_type');
+
         return $request->validate([
+            'game_type' => ['required', 'string', Rule::in($game ? [$game->game_type] : ['quiz', 'sketch'])],
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:10000'],
-            'min_players' => ['required', 'integer', 'min:1', 'max:200'],
-            'max_players' => ['required', 'integer', 'min:1', 'max:200', 'gte:min_players'],
+            'min_players' => ['required', 'integer', $type === 'sketch' ? 'min:2' : 'min:1', 'max:200'],
+            'max_players' => ['required', 'integer', $type === 'sketch' ? 'min:2' : 'min:1', 'max:200', 'gte:min_players'],
             'time_limit_per_question' => ['required', 'integer', 'min:1', 'max:300'],
             'status' => ['required', Rule::in([
                 Game::STATUS_DRAFT,

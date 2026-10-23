@@ -19,12 +19,15 @@ class GameSession extends Model
 
     // Snapshot values must be copied from the game by the session service.
     protected $fillable = [
-        'hosted_by', 'game_title', 'min_players', 'max_players',
+        'game_type', 'sketch_words', 'hosted_by', 'game_title', 'min_players', 'max_players',
         'time_limit_per_question', 'status', 'current_question_position',
         'total_questions', 'started_at', 'completed_at', 'cancelled_at',
     ];
 
+    protected $hidden = ['sketch_words'];
+
     protected $attributes = [
+        'game_type' => Game::TYPE_QUIZ,
         'status' => self::STATUS_WAITING,
         'current_question_position' => 0,
         'total_questions' => 0,
@@ -33,6 +36,7 @@ class GameSession extends Model
     protected function casts(): array
     {
         return [
+            'sketch_words' => 'array',
             'min_players' => 'integer',
             'max_players' => 'integer',
             'time_limit_per_question' => 'integer',
@@ -67,6 +71,12 @@ class GameSession extends Model
     {
         return $this->belongsTo(User::class, 'hosted_by');
     }
+
+    public function isSketch(): bool { return $this->game_type === Game::TYPE_SKETCH; }
+
+    public function sketchTurns(): HasMany { return $this->hasMany(SketchTurn::class)->orderBy('position'); }
+    public function sketchGuesses(): HasMany { return $this->hasMany(SketchGuess::class); }
+    public function sketchStrokes(): HasMany { return $this->hasMany(SketchStroke::class); }
 
     public function questions(): HasMany
     {

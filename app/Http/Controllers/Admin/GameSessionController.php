@@ -64,7 +64,7 @@ class GameSessionController extends Controller
         $session = $quiz->start($session);
 
         return redirect()->route('admin.sessions.show', $session)
-            ->with('success', 'The quiz has started.');
+            ->with('success', 'The game has started.');
     }
 
     public function cancel(GameSession $session, QuizSessionService $quiz): RedirectResponse
