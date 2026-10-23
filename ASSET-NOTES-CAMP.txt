@@ -1,0 +1,9 @@
+Asset: public/images/omiquiz/camp-lobby.png
+Method: Built-in image_gen image editing
+Dimensions: 1774 x 887 PNG
+Reference: user-supplied spectator campsite screenshot
+
+Prompt:
+Use case: precise-object-edit. Asset type: production background for a responsive fantasy quiz lobby. Input image 1 is an edit target/reference showing the desired campsite art inside a web screenshot. Create ONLY the clean campsite artwork as one full-bleed wide landscape image, approximately 2:1. Preserve the illustrated high-detail pixel-art look, dark teal night forest, corner trees, distant lake and small glowing castle, cozy tent and lanterns on the left, crates/banner/lute on the right, warm campfire very low at bottom center. Remove every character/person, portrait, avatar, nameplate, button, logo, word, header, footer, white margin and other website interface element. No text or symbols that resemble writing anywhere. Expand the artwork to cover the complete image with square corners. Keep most of the middle and upper-middle as dark, uncluttered forest/lake atmosphere, leaving abundant space for forty live game characters that will be overlaid in code; keep the environmental props predominantly around the lower edge and outer corners. Maintain the screenshot's balanced perspective, warm amber fire contrasting with cool deep teal/navy, subtle fireflies and stars, readable layered pixel-art environment. No people, no cards, no labels, no UI, no watermarks.
+
+Generated background copied without post-generation image edits. Live sprites are existing application SVG artwork with transparent framing.
