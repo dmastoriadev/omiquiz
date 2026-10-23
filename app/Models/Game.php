@@ -15,7 +15,8 @@ class Game extends Model
 
     public const TYPE_QUIZ = 'quiz';
     public const TYPE_SKETCH = 'sketch';
-    public const TYPES = ['quiz' => 'Quiz', 'sketch' => 'Sketch & Guess'];
+    public const TYPE_BINGO = 'bingo';
+    public const TYPES = ['quiz' => 'Quiz', 'sketch' => 'Sketch & Guess', 'bingo' => 'Reverse Bingo'];
 
     public const STATUS_DRAFT = 'draft';
     public const STATUS_ACTIVE = 'active';
@@ -24,6 +25,7 @@ class Game extends Model
     protected $fillable = [
         'title', 'description', 'min_players', 'max_players',
         'time_limit_per_question', 'letter_hint_max', 'status', 'game_type',
+        'bingo_min_plays', 'bingo_max_plays',
     ];
 
     protected $attributes = [
@@ -32,6 +34,8 @@ class Game extends Model
         'max_players' => 50,
         'time_limit_per_question' => 30,
         'letter_hint_max' => 0,
+        'bingo_min_plays' => 3,
+        'bingo_max_plays' => 20,
         'status' => self::STATUS_DRAFT,
     ];
 
@@ -42,6 +46,8 @@ class Game extends Model
             'max_players' => 'integer',
             'time_limit_per_question' => 'integer',
             'letter_hint_max' => 'integer',
+            'bingo_min_plays' => 'integer',
+            'bingo_max_plays' => 'integer',
         ];
     }
 
@@ -70,6 +76,8 @@ class Game extends Model
     {
         return $this->hasMany(Question::class)->orderBy('position')->orderBy('id');
     }
+
+    public function isBingo(): bool { return $this->game_type === self::TYPE_BINGO; }
 
     public function isSketch(): bool { return $this->game_type === self::TYPE_SKETCH; }
 

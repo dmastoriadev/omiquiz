@@ -13,6 +13,7 @@
         <div class="player-game-content" x-show="state.status !== 'waiting'" x-cloak>
             @include('play._round-leaderboard')
             @if ($session->game_type === 'sketch')@include('play._sketch')@endif
+            @if ($session->game_type === 'bingo')@include('play._bingo', ['hostView' => false])@endif
             <section x-show="isQuestionPhase" class="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-white px-5 py-3" aria-label="Your player profile"><img :src="state.player?.profile?.avatar_url" alt="Your assigned avatar" width="44" height="44" class="h-11 w-11 shrink-0 rounded-xl bg-indigo-50"><div class="min-w-0 flex-1"><p class="text-xs text-slate-400">Playing as</p><h2 class="break-words text-sm font-semibold" x-text="state.player?.name"></h2></div><p class="text-xs text-slate-400" x-text="state.player?.gender || 'Not specified'"></p><a href="{{ route('public.sessions.show', $session) }}" target="_blank" rel="noopener" class="text-xs font-semibold text-indigo-600">Spectator view ↗</a></section>
         <section x-show="isQuestionPhase" x-cloak class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <div class="p-6 sm:p-8"><div class="flex items-center justify-between gap-4"><p class="text-xs font-semibold uppercase tracking-widest text-indigo-600" x-text="'Question ' + state.current_position + ' of ' + state.total_questions"></p><p class="rounded-full px-4 py-2 text-2xl font-semibold tabular-nums" :class="remainingSeconds <= 5 ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-700'"><span x-text="remainingSeconds"></span><span class="ml-1 text-xs font-normal">sec</span></p></div>
@@ -24,7 +25,11 @@
                 <button x-show="!answerPending" type="button" @click="submitAnswer()" :disabled="!canSubmit" class="oq-button-primary answer-submit-button" x-text="submitting ? 'Submitting…' : state.answered ? 'Submitted ✓' : 'Submit answer'"></button><button x-show="answerPending && isQuestionPhase && remainingSeconds > 0" type="button" @click="retryAnswer()" :disabled="!canRetryAnswer" class="oq-button-primary answer-submit-button" x-text="submitting ? 'Submitting…' : 'Retry submission'"></button>
             </div>
         </section>
-        @include('play._results')
+        @if ($session->game_type === 'bingo')
+            @include('play._bingo-results')
+        @else
+            @include('play._results')
+        @endif
         <section x-show="state.status === 'cancelled'" x-cloak class="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h1 class="text-2xl font-semibold">The host ended this session</h1><p class="mt-3 text-sm text-slate-500">Ask your host for a new link to play again.</p></section>
         </div>
     </div>

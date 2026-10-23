@@ -35,6 +35,7 @@ class ResultsCsvExporter
                     'total_questions', 'total_response_time_ms', 'finalized_at',
                     'gender', 'rpg_profile_id', 'rpg_profile_name', 'rpg_profile_class',
                     'game_type', 'guess_points', 'draw_points',
+                    'bingo_cards_remaining', 'bingo_eliminated_on_draw',
                 ], ',', '"', '');
 
                 foreach ($session->results()->with('player')->lazy(200) as $result) {
@@ -69,6 +70,8 @@ class ResultsCsvExporter
                         $session->game_type,
                         $result->guess_points,
                         $result->draw_points,
+                        $session->isBingo() ? $result->bingo_cards_remaining : '',
+                        $session->isBingo() ? $result->bingo_eliminated_on_draw : '',
                     ];
 
                     fputcsv($output, array_map($this->safeCell(...), $row), ',', '"', '');

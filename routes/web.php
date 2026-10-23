@@ -64,6 +64,8 @@ Route::prefix('admin')
         Route::get('/sessions/{session}/state', [GameSessionController::class, 'state'])->middleware('throttle:quiz-state')->block(10, 10)->name('sessions.state');
         Route::post('/sessions/{session}/start', [GameSessionController::class, 'start'])->name('sessions.start');
         Route::post('/sessions/{session}/cancel', [GameSessionController::class, 'cancel'])->name('sessions.cancel');
+        Route::post('/sessions/{session}/bingo/draw', [GameSessionController::class, 'bingoDraw'])
+            ->middleware('throttle:quiz-answer')->block(10, 10)->name('sessions.bingo-draw');
         Route::get('/sessions/{session}/export', [GameSessionController::class, 'export'])->name('sessions.export');
         Route::post('/users/{user}/send-reset-password', [UserController::class, 'sendResetPasswordEmail'])
             ->middleware('throttle:3,1')

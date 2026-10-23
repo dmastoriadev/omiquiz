@@ -8,6 +8,7 @@ use App\Models\GameSession;
 use App\Services\QuizSessionService;
 use App\Services\QuizStatePresenter;
 use App\Services\ResultsCsvExporter;
+use App\Services\BingoSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,5 +86,17 @@ class GameSessionController extends Controller
     public function export(GameSession $session, ResultsCsvExporter $exporter): StreamedResponse
     {
         return $exporter->download($session);
+    }
+
+    public function bingoDraw(Request $request, GameSession $session, BingoSessionService $bingo, QuizStatePresenter $presenter): JsonResponse
+    {
+        abort_unless($session->isBingo(), 404);
+        $data = $request->validate([
+            'expected_position' => ['required', 'integer', 'min:0', 'max:74'],
+        ]);
+        $session = $bingo->revealNext($session, (int) $data['expected_position']);
+
+        return response()->json(['state' => $presenter->present($session)])
+            ->header('Cache-Control', 'private, no-store');
     }
 }

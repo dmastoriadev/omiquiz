@@ -13,6 +13,7 @@ class QuizStatePresenter
     /** Spectators see submission status for this question, never cumulative answer progress. */
     public function spectator(GameSession $session): array
     {
+        if ($session->isBingo()) return app(BingoStatePresenter::class)->spectator($session);
         if ($session->isSketch()) return app(SketchStatePresenter::class)->spectator($session);
         $state = $this->present($session);
         unset($state['progress'], $state['leaderboard']);
@@ -26,6 +27,7 @@ class QuizStatePresenter
     /** Shared spectator/host/player state; personal fields exist only for that player. */
     public function present(GameSession $session, ?GameSessionPlayer $player = null): array
     {
+        if ($session->isBingo()) return app(BingoStatePresenter::class)->present($session, $player);
         if ($session->isSketch()) return app(SketchStatePresenter::class)->present($session, $player);
         return DB::transaction(function () use ($session, $player): array {
             $session = GameSession::query()->lockForUpdate()->findOrFail($session->id);

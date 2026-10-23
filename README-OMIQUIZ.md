@@ -1,6 +1,6 @@
-# Omiquiz — Drawer-controlled letter hints
+# Omiquiz — Reverse Bingo
 
-This incremental update contains only changed/new files. Merge its folders into the existing project, replacing matching files. Keep the previous Sketch & Guess, avatar, Whitney, public-guesses and Undo updates installed.
+This update adds Reverse Bingo beside Quiz and Sketch & Guess. It contains only changed/new files and assumes the earlier gameplay updates, including sketch hints, are already installed. Merge the folders into your existing Omiquiz project and replace matching files.
 
 ## Apply on Hostinger / CloudPanel
 
@@ -11,9 +11,7 @@ php artisan optimize:clear
 npm run build
 ```
 
-Refresh the host, player and spectator tabs with Ctrl+F5. The new additive migration stores the hint setting, the saved word mask and the reveal time. Existing game data is retained.
-
-If you build locally, upload the newly generated public/build folder together with the updated source, then run the migration and cache-clear commands on the live server.
+The new migration is additive. Existing games, sessions and results are retained. Refresh host, player and spectator tabs after deployment. If building locally, upload the generated public/build folder with the source, then run the migration and cache-clear commands on the server.
 
 ## Apply locally with Laragon
 
@@ -24,24 +22,40 @@ php artisan optimize:clear
 npm.cmd run build
 ```
 
-## Set the maximum letters
+## Create and host a game
 
-1. Open Admin → Games and edit your Sketch & Guess game.
-2. Set Maximum hint letters to 2, or another whole number from 0 to 100. A value of 0 disables hints.
-3. Save, then start a new or waiting session.
+1. In Admin → Games → Create, choose Reverse Bingo.
+2. Set minimum and maximum players, from 2 to 30. The latest requested cap of 30 applies to this category.
+3. Set First possible elimination (play), default 3 and Maximum plays (default 20). The first setting controls the earliest player knockout; the maximum is the exact final draw. Maximum plays can be 6–74, and the minimum must be at least 3 and at most maximum minus 3.
+4. Set the game to Active and create a session. No question or word upload is required.
+5. Share the player and spectator links. Players join with a name, gender and generated avatar, and can edit their name or mark Ready in the existing camp lobby.
+6. Start when enough players have joined. Three numbered cards per player are assigned and saved at this point.
+7. Press Reveal next number in the admin session to advance each play. There is no automatic draw, countdown or scheduled advancement. The saved game resumes at the same draw after a refresh or reconnection.
 
-The setting applies to all words in that sketch game. Waiting rooms use the latest saved setting when started. Active and completed sessions retain their existing settings; start a new session to use hints for a game already in progress.
+## Cards, forecast and winner
 
-## Share a hint
+Each card holds one number from 1–75, rather than a traditional 5×5 grid. A player's three numbers are distinct; numbers can be shared between different players. A revealed number closes every matching card. A player is eliminated when all three cards are closed.
 
-The player who is drawing has a small Hint button. They can press it before their first stroke, while sketching, or after finishing their drawing, while the turn timer is still running. It does not require a drawing to exist or the canvas to finish loading.
+The server randomly assigns the complete draw order and player elimination order when the session starts. The host controls when the next number is revealed, without choosing its number or winner. This is a planned survival game: the outcome is randomized at the start, rather than each draw being independently random.
 
-Pressing Hint shares the same masked word with everyone through the existing state polling. For Shark with a maximum of 2, one possible hint is S_a__. The chosen positions are random and stay fixed for that turn. Repeated clicks, retries and refreshes do not reveal extra letters or change the hint.
+Exactly one player retains exactly one card after the final draw. That remaining number belongs only to the winner and is never called. Every other player's cards are closed. Numbers are not repeated. New arrivals cannot join after start.
 
-At least one letter stays hidden, so short words reveal fewer letters than the configured maximum. Spaces and punctuation remain readable. Accented letters and other Unicode letters are handled as whole characters. Prompts with no letters or numbers have no letter hint.
+For at least four players and a maximum of 20 plays:
 
-The hint stays private until the drawer presses the button. Only the current drawer can reveal it; guessers, spectators and the host cannot trigger it. When the timer expires, the usual answer reveal and leaderboard continue.
+| Draw | Players entering the draw | Players after the draw |
+| --- | ---: | ---: |
+| 18 | 4 | 3 |
+| 19 | 3 | 2 |
+| 20 | 2 | 1 winner |
 
-## Verification
+With 30 players, minimum 3 and maximum 20, the earlier knockouts are spread across draws 3–17 in groups of one or two. Shorter schedules or a later first knockout can require larger groups. The admin forecast shows the exact projected player counts for the joined roster, without exposing future numbers or player identities. Two- and three-player games also finish with one winner on the configured final draw.
 
-See VALIDATION-SKETCH-HINTS.md for test results and environment limits.
+Spectators and players see the revealed number, draw history, active players and their three cards. Players can identify their own highlighted avatar and cards. Closed cards are visibly disabled. The final screen features the top five and all remaining placements.
+
+Placements follow survival order. Players eliminated on the same draw use a random tie order fixed when the game starts. Survival points equal the elimination draw; the winner gets maximum plays plus one. Results are stored for every player and are available in the admin reports and CSV export, including cards remaining and elimination draw.
+
+## Mobile and verification
+
+The board uses responsive layouts, touch-sized controls, text labels alongside color, and reduced-motion support. No hover, dragging or canvas interaction is needed to play Bingo.
+
+See VALIDATION-REVERSE-BINGO.md for automated checks and environment limits. Physical iOS Safari and Android Chrome testing is not available in this workspace.

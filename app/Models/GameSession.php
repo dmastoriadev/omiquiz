@@ -22,9 +22,10 @@ class GameSession extends Model
         'game_type', 'sketch_words', 'hosted_by', 'game_title', 'min_players', 'max_players',
         'time_limit_per_question', 'letter_hint_max', 'status', 'current_question_position',
         'total_questions', 'started_at', 'completed_at', 'cancelled_at',
+        'bingo_min_plays', 'bingo_max_plays', 'bingo_plan',
     ];
 
-    protected $hidden = ['sketch_words'];
+    protected $hidden = ['sketch_words', 'bingo_plan'];
 
     protected $attributes = [
         'game_type' => Game::TYPE_QUIZ,
@@ -32,12 +33,17 @@ class GameSession extends Model
         'current_question_position' => 0,
         'total_questions' => 0,
         'letter_hint_max' => 0,
+        'bingo_min_plays' => 3,
+        'bingo_max_plays' => 20,
     ];
 
     protected function casts(): array
     {
         return [
             'sketch_words' => 'array',
+            'bingo_plan' => 'array',
+            'bingo_min_plays' => 'integer',
+            'bingo_max_plays' => 'integer',
             'min_players' => 'integer',
             'max_players' => 'integer',
             'time_limit_per_question' => 'integer',
@@ -73,6 +79,11 @@ class GameSession extends Model
     {
         return $this->belongsTo(User::class, 'hosted_by');
     }
+
+    public function isBingo(): bool { return $this->game_type === Game::TYPE_BINGO; }
+
+    public function bingoCards(): HasMany { return $this->hasMany(BingoCard::class)->orderBy('slot'); }
+    public function bingoDraws(): HasMany { return $this->hasMany(BingoDraw::class)->orderBy('position'); }
 
     public function isSketch(): bool { return $this->game_type === Game::TYPE_SKETCH; }
 

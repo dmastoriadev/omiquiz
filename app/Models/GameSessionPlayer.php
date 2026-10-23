@@ -73,6 +73,8 @@ class GameSessionPlayer extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function bingoCards(): HasMany { return $this->hasMany(BingoCard::class)->orderBy('slot'); }
+
     public function sketchGuesses(): HasMany { return $this->hasMany(SketchGuess::class); }
     public function drawnTurns(): HasMany { return $this->hasMany(SketchTurn::class, 'drawer_id'); }
 

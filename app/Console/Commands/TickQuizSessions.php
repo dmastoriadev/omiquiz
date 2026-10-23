@@ -16,6 +16,7 @@ class TickQuizSessions extends Command
     {
         $failed = false;
         GameSession::query()->where('status', GameSession::STATUS_IN_PROGRESS)
+            ->whereIn('game_type', [\App\Models\Game::TYPE_QUIZ, \App\Models\Game::TYPE_SKETCH])
             ->chunkById(100, function ($sessions) use ($service, &$failed): void {
                 foreach ($sessions as $session) {
                     try {

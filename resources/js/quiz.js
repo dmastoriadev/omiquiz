@@ -18,6 +18,11 @@ export default function registerQuiz(Alpine) {
         profileError: '',
         readySaving: false,
         readyError: '',
+        bingoDrawing: false,
+        bingoPendingPosition: null,
+        bingoError: '',
+        bingoPulse: false,
+        bingoPulseTimer: null,
         now: Date.now(),
         serverOffset: 0,
         pollTimer: null,
@@ -69,6 +74,7 @@ export default function registerQuiz(Alpine) {
             this.stopped = true;
             clearTimeout(this.pollTimer);
             clearInterval(this.clockTimer);
+            clearTimeout(this.bingoPulseTimer);
             this.motionPreference?.removeEventListener?.('change', this.motionListener);
             this.cancelRankFrames();
             this.destroyCamp();
@@ -83,11 +89,60 @@ export default function registerQuiz(Alpine) {
         get statusLabel() {
             if (this.state.phase === 'leaderboard') return 'Top 5';
             if (this.state.phase === 'drawing') return 'Sketch & Guess';
+            if (this.state.phase === 'bingo') return 'Reverse Bingo';
             return {waiting: 'Lobby', in_progress: 'Live quiz', completed: 'Finished', cancelled: 'Cancelled'}[this.state.status] || '';
         },
 
         get isQuestionPhase() {
-            return this.state.status === 'in_progress' && (!this.state.phase || this.state.phase === 'question');
+            return this.state.game_type !== 'bingo' && this.state.status === 'in_progress' && (!this.state.phase || this.state.phase === 'question');
+        },
+
+        get bingoActivePlayers() {
+            const active = (this.state.players || []).filter(person => !person.eliminated);
+            const ownId = this.state.player?.public_id;
+            // Keep your cards easy to find on a small screen; spectators retain join order.
+            return ownId ? active.sort((a, b) => Number(b.public_id === ownId) - Number(a.public_id === ownId)) : active;
+        },
+
+        get bingoEliminatedPlayers() {
+            return (this.state.players || []).filter(person => person.eliminated);
+        },
+
+        get canRevealBingo() {
+            return !!this.urls.bingoDraw && this.state.game_type === 'bingo'
+                && this.state.status === 'in_progress' && !this.bingoDrawing && !this.stopped;
+        },
+
+        get bingoWinnerNumber() {
+            if (this.state.status !== 'completed') return null;
+            const winner = (this.state.results || []).find(result => result.is_winner || result.rank === 1);
+            const person = (this.state.players || []).find(entry => entry.public_id === winner?.public_id);
+            return (person?.bingo_cards || []).find(card => card.active)?.number ?? null;
+        },
+
+        async revealBingo() {
+            if (!this.canRevealBingo) return;
+            // A timeout may have committed. Retry the same position until polling
+            // confirms it, never silently move to the next draw after a failed reply.
+            const position = this.bingoPendingPosition ?? Number(this.state.current_position || 0);
+            this.bingoPendingPosition = position;
+            this.bingoDrawing = true;
+            this.bingoError = '';
+            try {
+                const response = await window.axios.post(this.urls.bingoDraw, {expected_position: position}, {
+                    headers: this.requestHeaders(), timeout: 10000,
+                });
+                if (!this.stopped) this.applyState(response.data);
+            } catch (failure) {
+                if (!this.stopped && this.state.status === 'in_progress'
+                    && Number(this.state.current_position) <= position) {
+                    this.bingoError = Object.values(failure.response?.data?.errors || {}).flat()[0]
+                        || failure.response?.data?.message
+                        || 'The reveal is not confirmed yet. Retry this draw or wait for reconnection.';
+                }
+            } finally {
+                this.bingoDrawing = false;
+            }
         },
 
         get answerLocked() {
@@ -135,6 +190,18 @@ export default function registerQuiz(Alpine) {
             }
             if (Number(next.current_position) < Number(this.state.current_position)) return;
             if (['completed', 'cancelled'].includes(this.state.status) && next.status !== this.state.status) return;
+            if (next.game_type === 'bingo') {
+                if (Number(next.current_position) > Number(this.state.current_position)) {
+                    clearTimeout(this.bingoPulseTimer);
+                    this.bingoPulse = !this.motionPaused;
+                    this.bingoPulseTimer = setTimeout(() => { this.bingoPulse = false; }, 450);
+                }
+                if ((this.bingoPendingPosition !== null && Number(next.current_position) > this.bingoPendingPosition)
+                    || ['completed', 'cancelled'].includes(next.status)) {
+                    this.bingoPendingPosition = null;
+                    this.bingoError = '';
+                }
+            }
             if (oldQuestion && oldQuestion === next.question?.id) {
                 const answered = new Set((this.state.players || []).filter(person => person.answered).map(person => person.public_id));
                 next.players = (next.players || []).map(person => answered.has(person.public_id) ? {...person, answered: true} : person);

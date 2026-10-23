@@ -15,6 +15,7 @@ class GameResult extends Model
         'guess_points', 'draw_points', 'game_session_id', 'player_name', 'player_email', 'total_score',
         'correct_answers', 'wrong_answers', 'unanswered_questions',
         'total_questions', 'total_response_time_ms', 'rank', 'finalized_at',
+        'bingo_cards_remaining', 'bingo_eliminated_on_draw',
     ];
 
     protected $hidden = ['player_email'];
@@ -32,6 +33,7 @@ class GameResult extends Model
     {
         return [
             'guess_points' => 'integer', 'draw_points' => 'integer',
+            'bingo_cards_remaining' => 'integer', 'bingo_eliminated_on_draw' => 'integer',
             'total_score' => 'integer',
             'correct_answers' => 'integer',
             'wrong_answers' => 'integer',

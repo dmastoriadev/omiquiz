@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class GameController extends Controller
@@ -34,7 +35,9 @@ class GameController extends Controller
         $game = $request->user()->quizGames()->create($this->validated($request));
 
         return redirect()->route('admin.games.show', $game)
-            ->with('success', 'Game created. Upload '.($game->game_type === 'sketch' ? 'drawing words' : 'questions').' to prepare a session.');
+            ->with('success', $game->isBingo()
+                ? 'Reverse Bingo created. Set the game to Active, then create a session. Cards are assigned when you start.'
+                : 'Game created. Upload '.($game->game_type === 'sketch' ? 'drawing words' : 'questions').' to prepare a session.');
     }
 
     public function show(Game $game): View
@@ -69,10 +72,18 @@ class GameController extends Controller
                 $lockedGame->sessions()->where('status', 'waiting')->where('game_type', Game::TYPE_SKETCH)
                     ->update(['letter_hint_max' => $lockedGame->letter_hint_max]);
             }
+            if ($lockedGame->isBingo()) {
+                $lockedGame->sessions()->where('status', 'waiting')->where('game_type', Game::TYPE_BINGO)
+                    ->update([
+                        'bingo_min_plays' => $lockedGame->bingo_min_plays,
+                        'bingo_max_plays' => $lockedGame->bingo_max_plays,
+                        'total_questions' => $lockedGame->bingo_max_plays,
+                    ]);
+            }
         }, 3);
 
         return redirect()->route('admin.games.show', $game)
-            ->with('success', 'Game updated. Waiting sessions now use the saved time limit and sketch hint setting. Games already in progress keep their original settings.');
+            ->with('success', 'Game updated. Timer, hint and Reverse Bingo draw settings also apply to waiting sessions. Games already in progress keep their original settings.');
     }
 
     public function destroy(Game $game): RedirectResponse
@@ -97,20 +108,39 @@ class GameController extends Controller
         } elseif (! $request->exists('letter_hint_max')) {
             $request->merge(['letter_hint_max' => $game?->letter_hint_max ?? 0]);
         }
+        if ($type === Game::TYPE_BINGO) {
+            // Reverse Bingo advances only when the host reveals another number.
+            $request->merge(['time_limit_per_question' => $game?->time_limit_per_question ?? 30]);
+        }
+        foreach (['bingo_min_plays' => 3, 'bingo_max_plays' => 20] as $field => $default) {
+            if ($type !== Game::TYPE_BINGO || ! $request->exists($field)) {
+                $request->merge([$field => $game?->{$field} ?? $default]);
+            }
+        }
 
-        return $request->validate([
-            'game_type' => ['required', 'string', Rule::in($game ? [$game->game_type] : ['quiz', 'sketch'])],
+        $data = $request->validate([
+            'game_type' => ['required', 'string', Rule::in($game ? [$game->game_type] : array_keys(Game::TYPES))],
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:10000'],
-            'min_players' => ['required', 'integer', $type === 'sketch' ? 'min:2' : 'min:1', 'max:200'],
-            'max_players' => ['required', 'integer', $type === 'sketch' ? 'min:2' : 'min:1', 'max:200', 'gte:min_players'],
+            'min_players' => ['required', 'integer', $type === 'quiz' ? 'min:1' : 'min:2', $type === Game::TYPE_BINGO ? 'max:30' : 'max:200'],
+            'max_players' => ['required', 'integer', $type === 'quiz' ? 'min:1' : 'min:2', $type === Game::TYPE_BINGO ? 'max:30' : 'max:200', 'gte:min_players'],
             'time_limit_per_question' => ['required', 'integer', 'min:1', 'max:300'],
             'letter_hint_max' => ['required', 'integer', 'min:0', 'max:100'],
+            'bingo_min_plays' => ['required', 'integer', 'min:3', 'max:71'],
+            'bingo_max_plays' => ['required', 'integer', 'min:6', 'max:74'],
             'status' => ['required', Rule::in([
                 Game::STATUS_DRAFT,
                 Game::STATUS_ACTIVE,
                 Game::STATUS_ARCHIVED,
             ])],
         ]);
+
+        if ($type === Game::TYPE_BINGO && $data['bingo_min_plays'] > $data['bingo_max_plays'] - 3) {
+            throw ValidationException::withMessages([
+                'bingo_min_plays' => 'The first possible elimination must be at least three draws before the final draw.',
+            ]);
+        }
+
+        return $data;
     }
 }

@@ -12,6 +12,7 @@
         @include('play._camp', ['playerView' => false])
         @include('play._round-leaderboard')
         @if ($session->game_type === 'sketch')@include('play._sketch')@endif
+        @if ($session->game_type === 'bingo')@include('play._bingo', ['hostView' => false])@endif
 
         <div x-show="isQuestionPhase" x-cloak class="space-y-6">
             <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -21,7 +22,11 @@
             <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"><div class="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold">The party is thinking…</h2><p class="mt-1 text-xs text-slate-400">Answers are locked in until the next question.</p></div><button type="button" class="text-xs font-semibold text-slate-500 hover:text-indigo-600" @click="toggleMotion()" :aria-pressed="motionPaused" x-text="motionPaused ? 'Resume motion' : 'Pause motion'"></button></div><div class="answer-party-grid"><template x-for="person in state.players" :key="person.public_id"><article class="answer-party-card" :class="answeredCurrent(person) ? 'answer-party-card--answered' : ''"><div class="answer-party-avatar"><img :src="person.profile?.sprite_url || person.profile?.avatar_url" alt="" width="100" height="100" class="party-float" :style="campStyle(person.public_id)"><template x-for="token in (answeredCurrent(person) ? [checkKey(person)] : [])" :key="token"><span class="answer-check answer-check--pulse" role="img" :aria-label="person.name + ' answered this question'"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4 10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span></template></div><h3 class="answer-party-name" :title="person.name" x-text="person.name"></h3><p class="mt-1 text-[10px] font-medium" :class="answeredCurrent(person) ? 'text-emerald-600' : 'text-slate-400'" x-text="answeredCurrent(person) ? 'Answered' : 'Thinking…'"></p></article></template></div></section>
         </div>
 
-        @include('play._results')
+        @if ($session->game_type === 'bingo')
+            @include('play._bingo-results')
+        @else
+            @include('play._results')
+        @endif
         <section x-show="state.status === 'cancelled'" x-cloak class="rounded-2xl border border-slate-200 bg-white p-8"><h2 class="text-2xl font-semibold">This quest has ended early</h2><p class="mt-3 text-sm leading-6 text-slate-500">The host cancelled this session. Visit the arena to find another game.</p><a href="{{ route('home') }}" class="oq-button-secondary mt-5">Browse games</a></section>
     </div>
 @endsection
