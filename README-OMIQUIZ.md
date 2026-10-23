@@ -1,6 +1,6 @@
-# Omiquiz — Reverse Bingo
+# Omiquiz — 5×5 Reverse Bingo update
 
-This update adds Reverse Bingo beside Quiz and Sketch & Guess. It contains only changed/new files and assumes the earlier gameplay updates, including sketch hints, are already installed. Merge the folders into your existing Omiquiz project and replace matching files.
+Merge this ZIP into your existing Omiquiz project, replacing matching files. It assumes the earlier Reverse Bingo update is installed. This is a changed-files patch, not a full project.
 
 ## Apply on Hostinger / CloudPanel
 
@@ -8,10 +8,9 @@ This update adds Reverse Bingo beside Quiz and Sketch & Guess. It contains only 
 cd ~/htdocs/omi.ahrgrpwebdrafts.com
 php artisan migrate --force
 php artisan optimize:clear
-npm run build
 ```
 
-The new migration is additive. Existing games, sessions and results are retained. Refresh host, player and spectator tabs after deployment. If building locally, upload the generated public/build folder with the source, then run the migration and cache-clear commands on the server.
+Compiled frontend assets are included in `public/build`; upload that folder along with the other files. If you build from source instead, run `npm run build` after merging the source. Refresh host, player and spectator tabs after deployment. The migration adds nullable card cells and preserves existing data.
 
 ## Apply locally with Laragon
 
@@ -22,40 +21,41 @@ php artisan optimize:clear
 npm.cmd run build
 ```
 
-## Create and host a game
+## Configure and play
 
-1. In Admin → Games → Create, choose Reverse Bingo.
-2. Set minimum and maximum players, from 2 to 30. The latest requested cap of 30 applies to this category.
-3. Set First possible elimination (play), default 3 and Maximum plays (default 20). The first setting controls the earliest player knockout; the maximum is the exact final draw. Maximum plays can be 6–74, and the minimum must be at least 3 and at most maximum minus 3.
-4. Set the game to Active and create a session. No question or word upload is required.
-5. Share the player and spectator links. Players join with a name, gender and generated avatar, and can edit their name or mark Ready in the existing camp lobby.
-6. Start when enough players have joined. Three numbered cards per player are assigned and saved at this point.
-7. Press Reveal next number in the admin session to advance each play. There is no automatic draw, countdown or scheduled advancement. The saved game resumes at the same draw after a refresh or reconnection.
+1. Open Admin → Games and create or edit a Reverse Bingo game.
+2. Set minimum players from 2 upward and maximum players up to 32. Existing limits are retained until you edit them.
+3. Set First possible elimination to 3 and Maximum plays to 20 for the requested sequence.
+4. Create a session, share its player and spectator links, and wait for the players.
+5. Start the game from the admin session page. Three distinct 5×5 BINGO cards per player are generated and saved at this point.
+6. Press Reveal first number, then Reveal next number for each subsequent play. The host controls every reveal. The form also works when the latest JavaScript has not loaded.
 
-## Cards, forecast and winner
+## Full cards and elimination rules
 
-Each card holds one number from 1–75, rather than a traditional 5×5 grid. A player's three numbers are distinct; numbers can be shared between different players. A revealed number closes every matching card. A player is eliminated when all three cards are closed.
+Each card has 24 distinct numbers and a FREE center. Columns follow B=1–15, I=16–30, N=31–45, G=46–60 and O=61–75. The cards use the existing emerald-and-gold interface and Whitney font.
 
-The server randomly assigns the complete draw order and player elimination order when the session starts. The host controls when the next number is revealed, without choosing its number or winner. This is a planned survival game: the outcome is randomized at the start, rather than each draw being independently random.
+Any called number anywhere on a card closes the **entire card**. Matching cells are marked, the card is visibly disabled, and that player stays active until all three cards close. The FREE center cannot eliminate a card. Numbers can appear on several players’ cards, but the complete number set of every card is distinct within the session.
 
-Exactly one player retains exactly one card after the final draw. That remaining number belongs only to the winner and is never called. Every other player's cards are closed. Numbers are not repeated. New arrivals cannot join after start.
+The server randomly assigns the cards, draw sequence and elimination order together when the game starts. The host controls when to reveal a number, without selecting the number or winner. This is a planned survival game; independent random card generation and independent draws could not guarantee the requested finish.
 
-For at least four players and a maximum of 20 plays:
+For 32 players and 20 plays:
 
-| Draw | Players entering the draw | Players after the draw |
+| Play | Players entering | Players after the reveal |
 | --- | ---: | ---: |
 | 18 | 4 | 3 |
 | 19 | 3 | 2 |
 | 20 | 2 | 1 winner |
 
-With 30 players, minimum 3 and maximum 20, the earlier knockouts are spread across draws 3–17 in groups of one or two. Shorter schedules or a later first knockout can require larger groups. The admin forecast shows the exact projected player counts for the joined roster, without exposing future numbers or player identities. Two- and three-player games also finish with one winner on the configured final draw.
+At the default earliest elimination of 3, earlier player eliminations are spread across plays 3–17 in groups of one or two. Shorter games or a later first elimination may require larger groups. The admin forecast displays the counts.
 
-Spectators and players see the revealed number, draw history, active players and their three cards. Players can identify their own highlighted avatar and cards. Closed cards are visibly disabled. The final screen features the top five and all remaining placements.
+Exactly one untouched 5×5 card survives after the final draw. None of its 24 numbers has been called; every other card is closed. A single winning number is no longer the win condition. Final results show the surviving board, the top five and every other placement. The existing CSV export and saved scoring remain available.
 
-Placements follow survival order. Players eliminated on the same draw use a random tie order fixed when the game starts. Survival points equal the elimination draw; the winner gets maximum plays plus one. Results are stored for every player and are available in the admin reports and CSV export, including cards remaining and elimination draw.
+Maximum plays for new 5×5 sessions is 50. This reserves at least five uncalled numbers per column so a complete untouched winning card can exist. The configured first elimination must be at least 3 and at most maximum plays minus 3. Existing games configured above 50 need their setting reduced before starting a new session; running legacy sessions keep their original sequence.
 
-## Mobile and verification
+## Existing rooms and mobile layout
 
-The board uses responsive layouts, touch-sized controls, text labels alongside color, and reduced-motion support. No hover, dragging or canvas interaction is needed to play Bingo.
+New sessions and waiting sessions started after this update receive full cards. Already-running games keep their original single-number cards and finish normally; create a new session to use 5×5 cards. Completed records are preserved.
 
-See VALIDATION-REVERSE-BINGO.md for automated checks and environment limits. Physical iOS Safari and Android Chrome testing is not available in this workspace.
+Own cards appear first and are highlighted. On phones, swipe horizontally within each player’s row to see all three readable cards; scroll vertically to see the other players. Spectators see the same cards and live closures. The host controls and numbers are present in server-rendered HTML as a fallback.
+
+Validation details are in VALIDATION-BINGO-GRID.md. Browser rendering is blocked in this environment, so physical iOS Safari and Android Chrome layout/gesture checks remain unverified.

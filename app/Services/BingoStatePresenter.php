@@ -27,11 +27,22 @@ class BingoStatePresenter
             $profiles = $players->mapWithKeys(fn ($person): array => [
                 $person->id => array_intersect_key($catalog->profile((int) ($person->rpg_profile_id ?: $person->id)), array_flip(['id', 'avatar_url', 'sprite_url'])),
             ]);
-            $roster = $players->values()->map(function ($person, $index) use ($profiles, $session): array {
-                $cards = $person->bingoCards->map(fn ($card): array => [
-                    'slot' => $card->slot, 'number' => $card->number, 'active' => $card->closed_on_draw === null,
-                    'closed_on_draw' => $card->closed_on_draw,
-                ])->all();
+            // Only revealed draws are selected. Future draws and private trigger
+            // identifiers never enter the player or spectator payload.
+            $draws = $session->bingoDraws()->whereNotNull('revealed_at')->get()->map(fn ($draw): array => [
+                'position' => $draw->position, 'number' => $draw->number,
+            ])->all();
+            $calledNumbers = array_column($draws, 'number');
+            $roster = $players->values()->map(function ($person, $index) use ($profiles, $session, $calledNumbers): array {
+                $cards = $person->bingoCards->map(function ($card) use ($calledNumbers): array {
+                    $result = [
+                        'slot' => $card->slot, 'cells' => $card->cells,
+                        'matched_numbers' => array_values(array_intersect($card->cells ?? [$card->number], $calledNumbers)),
+                        'active' => $card->closed_on_draw === null, 'closed_on_draw' => $card->closed_on_draw,
+                    ];
+                    if ($card->cells === null) $result['number'] = $card->number;
+                    return $result;
+                })->all();
                 $remaining = $cards === [] && $session->status === GameSession::STATUS_WAITING
                     ? 3 : $person->bingoCards->whereNull('closed_on_draw')->count();
                 return [
@@ -42,10 +53,6 @@ class BingoStatePresenter
                 ];
             })->all();
             $rosterByPublicId = array_column($roster, null, 'public_id');
-            // Only revealed draws are selected. The plan's player/rank allocation stays private.
-            $draws = $session->bingoDraws()->whereNotNull('revealed_at')->get()->map(fn ($draw): array => [
-                'position' => $draw->position, 'number' => $draw->number,
-            ])->all();
             $results = $session->status === GameSession::STATUS_COMPLETED
                 ? $session->results()->with('player')->get()->map(fn ($result): array => [
                     'public_id' => $result->player->public_id, 'name' => $result->player_name,
@@ -62,6 +69,7 @@ class BingoStatePresenter
             ])), $session->bingo_plan['forecast'] ?? []);
             $last = $draws === [] ? null : $draws[count($draws) - 1];
             $phase = $session->status === GameSession::STATUS_IN_PROGRESS ? 'bingo' : $session->status;
+            $gridCards = $session->status === GameSession::STATUS_WAITING || ($session->bingo_plan['version'] ?? 1) >= 2;
             return [
                 'game_type' => Game::TYPE_BINGO, 'status' => $session->status, 'phase' => $phase, 'title' => $session->game_title,
                 'min_players' => $session->min_players, 'max_players' => $session->max_players,
@@ -78,7 +86,11 @@ class BingoStatePresenter
                     'draws' => $draws, 'active_count' => count(array_filter($roster, fn (array $row): bool => ! $row['eliminated'])),
                     'cards_per_player' => 3, 'min_plays' => $session->bingo_min_plays, 'max_plays' => $session->bingo_max_plays,
                     'forecast' => $forecast,
-                    'rules' => 'Three numbered cards each. Matching numbers close automatically. A random survival plan is fixed when the host starts; the last player with one card wins on the final draw. Players eliminated together are ranked using a random order fixed at the start.',
+                    'card_format' => $gridCards ? 'grid_5x5' : 'legacy_number',
+                    'rules' => ($gridCards
+                        ? 'Three 5×5 cards each, with a FREE center. Any called number anywhere on a card closes that whole card; lose all three and you are out. '
+                        : 'Three numbered cards each. A called number closes its matching card; lose all three and you are out. ')
+                        .'A random survival plan is fixed at the start. Exactly one player keeps one untouched card after the final draw. Players eliminated together are ranked using a random order fixed at the start.',
                 ],
                 'progress' => [
                     'completed_questions' => $session->current_question_position, 'total_questions' => $session->bingo_max_plays,

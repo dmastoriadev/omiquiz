@@ -58,13 +58,17 @@ class BingoSessionService
                 $session->bingoDraws()->create(['position' => $index + 1, 'number' => $number]);
             }
             foreach ($plan['players'] as $row) {
-                foreach ($row['cards'] as $index => $number) {
-                    $session->bingoCards()->create(['game_session_player_id' => $row['player_id'], 'slot' => $index + 1, 'number' => $number]);
+                foreach ($row['cards'] as $index => $card) {
+                    $session->bingoCards()->create([
+                        'game_session_player_id' => $row['player_id'], 'slot' => $index + 1,
+                        'number' => $card['number'], 'cells' => $card['cells'],
+                    ]);
                 }
             }
             $now = CarbonImmutable::now();
             $session->fill([
                 'bingo_plan' => [
+                    'version' => $plan['version'],
                     'players' => array_map(fn (array $row): array => array_intersect_key($row, array_flip(['player_id', 'rank', 'eliminated_on_draw'])), $plan['players']),
                     'forecast' => $plan['forecast'],
                 ],
@@ -100,9 +104,17 @@ class BingoSessionService
             }
             $now = CarbonImmutable::now();
             $draw->update(['revealed_at' => $now]);
-            $session->bingoCards()->where('number', $draw->number)->whereNull('closed_on_draw')->update([
-                'closed_on_draw' => $position, 'closed_at' => $now->format('Y-m-d H:i:s.v'),
-            ]);
+            // Evaluate the persisted visible grid, including every numbered cell.
+            // Null cells preserve already-running legacy single-number sessions.
+            $matchingIds = $session->bingoCards()->whereNull('closed_on_draw')->get()
+                ->filter(fn ($card): bool => $card->cells === null
+                    ? $card->number === $draw->number
+                    : in_array($draw->number, $card->cells, true))->modelKeys();
+            if ($matchingIds !== []) {
+                $session->bingoCards()->whereKey($matchingIds)->update([
+                    'closed_on_draw' => $position, 'closed_at' => $now->format('Y-m-d H:i:s.v'),
+                ]);
+            }
             $session->current_question_position = $position;
             $session->save();
             if ($position === $session->bingo_max_plays) $this->finalize($session, $now);
@@ -159,10 +171,10 @@ class BingoSessionService
 
     private function validateSettings(Game|GameSession $game): void
     {
-        if (! $game->isBingo() || $game->min_players < 2 || $game->max_players > 30 || $game->max_players < $game->min_players
-            || $game->bingo_max_plays < 6 || $game->bingo_max_plays > 74
+        if (! $game->isBingo() || $game->min_players < 2 || $game->max_players > 32 || $game->max_players < $game->min_players
+            || $game->bingo_max_plays < 6 || $game->bingo_max_plays > 50
             || $game->bingo_min_plays < 3 || $game->bingo_min_plays > $game->bingo_max_plays - 3) {
-            $this->fail('game', 'Reverse Bingo needs 2–30 players, 6–74 total plays, and a first elimination between play 3 and three plays before the end.');
+            $this->fail('game', 'Reverse Bingo needs 2–32 players, 6–50 total plays, and a first elimination between play 3 and three plays before the end.');
         }
     }
 

@@ -88,13 +88,17 @@ class GameSessionController extends Controller
         return $exporter->download($session);
     }
 
-    public function bingoDraw(Request $request, GameSession $session, BingoSessionService $bingo, QuizStatePresenter $presenter): JsonResponse
+    public function bingoDraw(Request $request, GameSession $session, BingoSessionService $bingo, QuizStatePresenter $presenter): JsonResponse|RedirectResponse
     {
         abort_unless($session->isBingo(), 404);
         $data = $request->validate([
             'expected_position' => ['required', 'integer', 'min:0', 'max:74'],
         ]);
         $session = $bingo->revealNext($session, (int) $data['expected_position']);
+
+        if (! $request->expectsJson()) {
+            return redirect()->route('admin.sessions.show', $session);
+        }
 
         return response()->json(['state' => $presenter->present($session)])
             ->header('Cache-Control', 'private, no-store');

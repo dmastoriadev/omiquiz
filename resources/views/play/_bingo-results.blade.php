@@ -1,7 +1,22 @@
-<section x-show="state.game_type === 'bingo' && state.status === 'completed'" x-cloak class="final-camp" aria-label="Reverse Bingo final standings">
-    <header class="final-camp-hero"><div class="final-camp-hero-copy"><p class="final-camp-eyebrow">Reverse Bingo · Final standings</p><h2>One lucky survivor</h2><p class="final-camp-subtitle" x-text="'Final number called: ' + (state.bingo?.last_number ?? '—')"></p><span class="final-camp-count" x-text="bingoWinnerNumber === null ? 'Game complete' : 'Winning card · ' + bingoWinnerNumber"></span></div></header>
+<section x-show="state.game_type === 'bingo' && state.status === 'completed'" @if (($state['status'] ?? '') !== 'completed') style="display: none" @endif class="final-camp" aria-label="Reverse Bingo final standings">
+    <header class="final-camp-hero"><div class="final-camp-hero-copy"><p class="final-camp-eyebrow">Reverse Bingo · Final standings</p><h2>One lucky survivor</h2><p class="final-camp-subtitle" x-text="'Final number called: ' + (state.bingo?.last_number ?? '—')"></p><span class="final-camp-count">One untouched card remains</span></div></header>
     <div class="final-camp-body">
         <div class="final-camp-intro"><div><h3>Top 5 survivors</h3><p>The last active card wins. The full party standings follow below.</p></div><span class="final-camp-flourish" aria-hidden="true">✦</span></div>
+        @php
+            $bingoWinnerId = collect($state['results'] ?? [])->firstWhere('rank', 1)['public_id'] ?? null;
+            $bingoWinner = collect($state['players'] ?? [])->firstWhere('public_id', $bingoWinnerId);
+            $bingoWinningCard = collect($bingoWinner['bingo_cards'] ?? [])->firstWhere('active', true);
+        @endphp
+        @if ($bingoWinningCard)
+            <div x-show="false" class="bingo-winning-card" aria-label="Winning Bingo card">
+                @include('play._bingo-card', ['dynamic' => false, 'card' => $bingoWinningCard])
+            </div>
+        @endif
+        <template x-for="person in (state.players || []).filter(person => person.public_id === (state.results || []).find(result => result.is_winner || result.rank === 1)?.public_id)" :key="person.public_id">
+            <div class="bingo-winning-card" aria-label="Winning Bingo card">
+                <template x-for="card in (person.bingo_cards || []).filter(card => card.active)" :key="card.slot">@include('play._bingo-card', ['dynamic' => true])</template>
+            </div>
+        </template>
         <div class="final-camp-list" role="list" aria-label="Top five Reverse Bingo players">
             <template x-for="result in (state.results || []).slice(0, 5)" :key="result.public_id">
                 <article class="final-camp-row" :class="{ 'final-camp-row--winner': result.is_winner, 'final-camp-row--you': state.player?.public_id === result.public_id }" role="listitem" :aria-label="'Rank ' + result.rank + ', ' + result.name">

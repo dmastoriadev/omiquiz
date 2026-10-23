@@ -394,3 +394,50 @@
         font-family: var(--font-whitney);
     }
 }
+
+/* Reverse Bingo: 5x5 cards use the same emerald and warm gold as the camp. */
+.bingo-player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr)); gap: 14px; }
+.bingo-player-panel { min-width: 0; overflow: hidden; border: 1px solid #466757; border-radius: 17px; padding: 13px; background: #123c36; }
+.bingo-player-panel--you { border-color: #efd28a; background: #374332; box-shadow: inset 0 0 0 1px #efd28a55; }
+.bingo-player-panel--out { background: #13322e; }
+.bingo-player-heading { display: flex; align-items: center; gap: 11px; min-height: 70px; margin-bottom: 10px; }
+.bingo-player-heading img { width: 64px; height: 64px; flex: none; object-fit: contain; }
+.bingo-player-heading > div { min-width: 0; }
+.bingo-player-heading h4 { overflow-wrap: anywhere; color: #f1f8eb; font-size: .95rem; font-weight: 600; line-height: 1.35; }
+.bingo-player-heading p { margin-top: 4px; color: #e1c98e; font-size: .68rem; font-weight: 500; }
+.bingo-card-strip { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: #8f9567 transparent; }
+.bingo-card-strip:focus-visible { outline: 2px solid #f3d99b; outline-offset: 3px; }
+.bingo-card { flex: 1 0 124px; min-width: 0; overflow: hidden; border: 2px solid #d9bd7c; border-radius: 10px; background: #f5edcd; color: #183b32; scroll-snap-align: start; }
+.bingo-card-caption { display: flex; justify-content: space-between; gap: 4px; padding: 7px 6px 5px; background: #214d40; color: #f8e2aa; font-size: .56rem; line-height: 1.3; font-weight: 600; }
+.bingo-card-letters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: #d8ba76; padding-block: 5px; text-align: center; font-size: 1.05rem; font-weight: 700; line-height: 1.3; }
+.bingo-card-cells { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; padding: 1px; background: #577264; }
+.bingo-card-cell { display: flex; min-width: 0; aspect-ratio: 1; align-items: center; justify-content: center; background: #f8f2dc; color: #173d34; font-size: 1rem; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bingo-card-cell--free { background: #d8ba76; color: #244335; font-size: .5rem; font-weight: 700; }
+.bingo-card-status { margin: 0; padding: 6px 3px; text-align: center; color: #36533f; font-size: .54rem; font-weight: 600; }
+.bingo-card--closed { border-color: #758778; background: #b8c4ad; }
+.bingo-card--closed .bingo-card-caption { background: #2e4941; color: #b5c5b6; }
+.bingo-card--closed .bingo-card-letters { background: #92a38d; color: #30493e; }
+.bingo-card--closed .bingo-card-cell { background: #b9c7b5; color: #526b5e; }
+.bingo-card--closed .bingo-card-cell--free { background: #92a38d; }
+.bingo-card--closed .bingo-card-cell--hit { position: relative; background: #744235; color: #ffdfb3; text-decoration: line-through; text-decoration-thickness: 2px; }
+.bingo-legacy-number { display: flex; min-height: 100px; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; }
+.bingo-card--closed .bingo-legacy-number { text-decoration: line-through; }
+.bingo-swipe-note { margin-top: 5px; color: #b9ccba; font-size: .65rem; line-height: 1.5; }
+.bingo-winning-card { width: min(100%, 300px); margin: 0 auto 24px; }
+.bingo-winning-card .bingo-card-cell { font-size: 1.45rem; }
+.bingo-winning-card .bingo-card-cell--free { font-size: .7rem; }
+.bingo-winning-card .bingo-card-letters { font-size: 1.6rem; }
+.bingo-winning-card .bingo-card-caption, .bingo-winning-card .bingo-card-status { font-size: .7rem; }
+@media (max-width: 639px) {
+    .bingo-game { border-radius: 18px; }
+    .bingo-player-grid { gap: 12px; }
+    .bingo-player-panel { padding: 11px; }
+    .bingo-card-strip { gap: 12px; scrollbar-width: none; }
+    .bingo-card-strip::-webkit-scrollbar { display: none; }
+    .bingo-card-strip > .bingo-card { flex: 0 0 184px; }
+    .bingo-card-cell { font-size: 1.15rem; }
+    .bingo-card-cell--free { font-size: .6rem; }
+    .bingo-card-caption { font-size: .64rem; }
+    .bingo-card-status { font-size: .6rem; }
+    .bingo-card-letters { font-size: 1.25rem; }
+}
