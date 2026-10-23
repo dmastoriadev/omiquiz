@@ -185,7 +185,7 @@
 .round-board-footer button:focus-visible { outline: 2px solid #eed598; outline-offset: 4px; border-radius: 3px; }
 .round-board--transition { display: flex; min-height: 200px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
 .round-board[data-rank-ready="true"] .round-rank-row--rising { animation: rank-victory-glow 1.3s ease-out; }
-@keyframes rank-victory-glow { 0%, 50% { border-color: #f8d578; box-shadow: inset 0 0 20px rgba(255, 219, 123, .2), 0 0 12px rgba(255, 219, 123, .17); } 100% { box-shadow: none; } }
+@keyframes rank-victory-glow { 0%, 50% { border-color: var(--rank-glow-border, #f8d578); box-shadow: inset 0 0 20px rgba(var(--rank-glow-rgb, 255, 219, 123), .2), 0 0 12px rgba(var(--rank-glow-rgb, 255, 219, 123), .17); } 100% { box-shadow: none; } }
 [data-motion-paused="true"] .round-rank-row { transition: none; animation: none !important; transform: translate3d(0, calc(var(--rank-to, 0) * var(--rank-step)), 0); }
 @media (max-width: 639px) {
     .round-board { --rank-step: 76px; padding: 14px 9px; border-radius: 18px; }
@@ -443,3 +443,9 @@
 .podium-crown--gold { color: #f2cd70; }
 .podium-crown--silver { color: #d6dce5; }
 .podium-crown--bronze { color: #d9a478; }
+
+/* Quiz and Sketch podium rows match their gold, silver and bronze crowns. */
+.round-rank-row--second, .final-camp-row--second { --rank-glow-border: #d6dce5; --rank-glow-rgb: 214, 220, 229; border-color: #b8c4d1; background: rgba(48, 62, 73, .96); box-shadow: inset 0 0 20px rgba(214, 220, 229, .08); }
+.round-rank-row--third, .final-camp-row--third { --rank-glow-border: #e2b18c; --rank-glow-rgb: 226, 177, 140; border-color: #c99064; background: rgba(72, 48, 34, .96); box-shadow: inset 0 0 20px rgba(217, 164, 120, .08); }
+.round-rank-row--second .round-rank-place, .round-rank-row--second .round-rank-score > span:first-child, .final-camp-row--second .final-camp-rank, .final-camp-row--second .final-camp-score strong { color: #e0e7ef; }
+.round-rank-row--third .round-rank-place, .round-rank-row--third .round-rank-score > span:first-child, .final-camp-row--third .final-camp-rank, .final-camp-row--third .final-camp-score strong { color: #e2b18c; }
