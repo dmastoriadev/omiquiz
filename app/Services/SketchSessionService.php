@@ -138,6 +138,7 @@ class SketchSessionService
             ]);
             $member->last_seen_at = $now;
             $member->save();
+            $this->closeWhenAllGuessed($session, $turn, $now);
             return ['correct' => true, 'already_guessed' => false, 'points_awarded' => $points, 'drawer_bonus' => $bonus];
         }, 3);
         return $this->unwrap($outcome);
@@ -290,9 +291,13 @@ class SketchSessionService
         while (true) {
             $turn = $session->sketchTurns()->where('position', $session->current_question_position)->first();
             if (! $turn || ! $turn->opened_at || ! $turn->deadline_at) $this->fail('session', 'The drawing timeline is incomplete.');
-            if ($now->lessThan($turn->deadline_at)) return;
-            if (! $turn->closed_at) { $turn->closed_at = $turn->deadline_at; $turn->save(); }
-            $nextAt = $turn->deadline_at->addSeconds(self::ANSWER_REVEAL_SECONDS + self::LEADERBOARD_SECONDS);
+            $this->closeWhenAllGuessed($session, $turn, $now);
+            if (! $turn->closed_at) {
+                if ($now->lessThan($turn->deadline_at)) return;
+                $turn->closed_at = $turn->deadline_at;
+                $turn->save();
+            }
+            $nextAt = $turn->closed_at->addSeconds(self::ANSWER_REVEAL_SECONDS + self::LEADERBOARD_SECONDS);
             if ($now->lessThan($nextAt)) return;
             $next = $session->sketchTurns()->where('position', '>', $turn->position)->first();
             if (! $next) { $this->finalize($session, $nextAt, $now); return; }
@@ -300,6 +305,27 @@ class SketchSessionService
             $session->current_question_position = $next->position;
             $session->save();
         }
+    }
+
+    /** Called only while holding the session lock, so the last correct guess closes once. */
+    private function closeWhenAllGuessed(GameSession $session, SketchTurn $turn, CarbonImmutable $now): void
+    {
+        if ($turn->closed_at) return;
+        $guesserIds = $session->players()->where('status', GameSessionPlayer::STATUS_PLAYING)
+            ->whereKeyNot($turn->drawer_id)->pluck('id');
+        if ($guesserIds->isEmpty()) return;
+        // Only successful guesses enter this ledger. A drawer, wrong guess, or
+        // disconnected browser cannot substitute for another player's success.
+        $guesses = $turn->guesses()->whereIn('game_session_player_id', $guesserIds)
+            ->where('guessed_at', '>=', $turn->opened_at->format('Y-m-d H:i:s.v'))
+            ->where('guessed_at', '<', $turn->deadline_at->format('Y-m-d H:i:s.v'))
+            ->where('guessed_at', '<=', $now->format('Y-m-d H:i:s.v'))
+            ->orderByDesc('guessed_at')->get(['game_session_player_id', 'guessed_at']);
+        if ($guesses->count() !== $guesserIds->count()) return;
+        // Preserve the actual finish time even when a later scheduler tick
+        // repairs a fully answered turn that was still open before this update.
+        $turn->closed_at = $guesses->first()->guessed_at;
+        $turn->save();
     }
 
     private function finalize(GameSession $session, CarbonImmutable $completedAt, CarbonImmutable $now): void

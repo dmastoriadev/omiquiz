@@ -33,7 +33,7 @@ class SketchStatePresenter
                 ->limit(12)->get(['drawer_id', 'position']);
             $playersById = $players->keyBy('id');
             $now = CarbonImmutable::now();
-            $revealEndsAt = $turn?->deadline_at?->addSeconds(SketchSessionService::ANSWER_REVEAL_SECONDS);
+            $revealEndsAt = $turn?->closed_at?->addSeconds(SketchSessionService::ANSWER_REVEAL_SECONDS);
             $phase = $session->status === GameSession::STATUS_IN_PROGRESS
                 ? ($turn?->closed_at
                     ? ($revealEndsAt && $now->lessThan($revealEndsAt) ? 'answer_reveal' : 'leaderboard')
@@ -42,7 +42,7 @@ class SketchStatePresenter
                 'question_id' => $turn->id, 'question_position' => $turn->position,
                 'turn_id' => $turn->id, 'drawer_name' => $playersById->get($turn->drawer_id)?->display_name,
                 'answer' => $turn->prompt, 'option_key' => null,
-                'starts_at' => $turn->deadline_at->toISOString(), 'ends_at' => $revealEndsAt->toISOString(),
+                'starts_at' => $turn->closed_at->toISOString(), 'ends_at' => $revealEndsAt->toISOString(),
                 'duration_seconds' => SketchSessionService::ANSWER_REVEAL_SECONDS,
                 'is_final' => $turn->position >= $session->total_questions,
             ] : null;

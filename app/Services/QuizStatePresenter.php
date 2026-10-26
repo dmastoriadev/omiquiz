@@ -39,7 +39,7 @@ class QuizStatePresenter
             $question = $session->status === GameSession::STATUS_IN_PROGRESS
                 ? $session->questions()->where('position', $session->current_question_position)->first() : null;
             $now = Carbon::now();
-            $revealEndsAt = $question?->deadline_at?->addSeconds(QuizSessionService::ANSWER_REVEAL_SECONDS);
+            $revealEndsAt = $question?->closed_at?->addSeconds(QuizSessionService::ANSWER_REVEAL_SECONDS);
             $phase = $session->status === GameSession::STATUS_IN_PROGRESS
                 ? ($question?->closed_at
                     ? ($revealEndsAt && $now->lessThan($revealEndsAt) ? 'answer_reveal' : 'leaderboard')
@@ -47,7 +47,7 @@ class QuizStatePresenter
             $answerReveal = $phase === 'answer_reveal' && $question ? [
                 'question_id' => $question->id, 'question_position' => $question->position,
                 'answer' => $question->options[$question->correct_option], 'option_key' => $question->correct_option,
-                'starts_at' => $question->deadline_at->toISOString(), 'ends_at' => $revealEndsAt->toISOString(),
+                'starts_at' => $question->closed_at->toISOString(), 'ends_at' => $revealEndsAt->toISOString(),
                 'duration_seconds' => QuizSessionService::ANSWER_REVEAL_SECONDS,
                 'is_final' => $question->position >= $session->total_questions,
             ] : null;

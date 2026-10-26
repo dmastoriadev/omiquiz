@@ -315,6 +315,10 @@ class QuizSessionService
             $player->last_seen_at = $now;
             $player->save();
 
+            // The session lock makes the final accepted submission close this
+            // question atomically, including when that submission is incorrect.
+            $this->closeQuestionWhenAnswered($session, $question, $now);
+
             return ['answer' => $answer];
         }, 3);
 
@@ -381,18 +385,19 @@ class QuizSessionService
                 $this->fail('session', 'The current question timeline is incomplete.');
             }
 
-            if ($now->lessThan($current->deadline_at)) {
-                return;
-            }
-
             if (! $current->closed_at) {
-                $current->closed_at = $current->deadline_at;
-                $current->save();
+                $this->closeQuestionWhenAnswered($session, $current, $now);
+
+                if (! $current->closed_at) {
+                    if ($now->lessThan($current->deadline_at)) return;
+                    $current->closed_at = $current->deadline_at;
+                    $current->save();
+                }
             }
 
-            // The persisted deadline anchors the answer reveal and leaderboard.
+            // The actual close time anchors the answer reveal and leaderboard.
             // Polling, reconnecting and scheduler delays cannot restart either interval.
-            $leaderboardEndsAt = $current->deadline_at->addSeconds(self::ANSWER_REVEAL_SECONDS + self::LEADERBOARD_SECONDS);
+            $leaderboardEndsAt = $current->closed_at->addSeconds(self::ANSWER_REVEAL_SECONDS + self::LEADERBOARD_SECONDS);
 
             if ($now->lessThan($leaderboardEndsAt)) {
                 return;
@@ -411,6 +416,28 @@ class QuizSessionService
             $session->current_question_position = $next->position;
             $session->save();
         }
+    }
+
+    /** All players must submit; correctness does not affect early completion. */
+    private function closeQuestionWhenAnswered(GameSession $session, GameSessionQuestion $question, CarbonImmutable $now): void
+    {
+        if ($question->closed_at) return;
+
+        $playerIds = $session->players()->where('status', GameSessionPlayer::STATUS_PLAYING)->pluck('id');
+        if ($playerIds->isEmpty()) return;
+
+        $answers = $question->answers()->whereIn('game_session_player_id', $playerIds)
+            ->whereNotNull('selected_option')->whereNotNull('answered_at')
+            ->get(['game_session_player_id', 'answered_at']);
+        if ($answers->pluck('game_session_player_id')->unique()->count() !== $playerIds->count()) return;
+
+        // The saved final submission also repairs a fully answered question
+        // encountered by a later poll without starting a fresh reveal window.
+        $closedAt = $answers->sortByDesc('answered_at')->first()->answered_at;
+        if ($closedAt->lessThan($question->opened_at) || $closedAt->greaterThanOrEqualTo($question->deadline_at)
+            || $closedAt->greaterThan($now)) return;
+        $question->closed_at = $closedAt;
+        $question->save();
     }
 
     private function finalize(GameSession $session, CarbonImmutable $completedAt, CarbonImmutable $now): void
