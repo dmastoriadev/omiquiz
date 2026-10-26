@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class SketchSessionService
 {
+    public const ANSWER_REVEAL_SECONDS = 5;
     public const LEADERBOARD_SECONDS = 7;
     public const MAX_EVENTS = 5000;
 
@@ -291,7 +292,7 @@ class SketchSessionService
             if (! $turn || ! $turn->opened_at || ! $turn->deadline_at) $this->fail('session', 'The drawing timeline is incomplete.');
             if ($now->lessThan($turn->deadline_at)) return;
             if (! $turn->closed_at) { $turn->closed_at = $turn->deadline_at; $turn->save(); }
-            $nextAt = $turn->deadline_at->addSeconds(self::LEADERBOARD_SECONDS);
+            $nextAt = $turn->deadline_at->addSeconds(self::ANSWER_REVEAL_SECONDS + self::LEADERBOARD_SECONDS);
             if ($now->lessThan($nextAt)) return;
             $next = $session->sketchTurns()->where('position', '>', $turn->position)->first();
             if (! $next) { $this->finalize($session, $nextAt, $now); return; }

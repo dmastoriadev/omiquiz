@@ -16,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class QuizSessionService
 {
+    public const ANSWER_REVEAL_SECONDS = 5;
     public const LEADERBOARD_SECONDS = 7;
 
     public function create(Game $game, User $host): GameSession
@@ -389,9 +390,9 @@ class QuizSessionService
                 $current->save();
             }
 
-            // The persisted deadline anchors the break for every device. Polling,
-            // reconnecting, and scheduler delays cannot restart its seven seconds.
-            $leaderboardEndsAt = $current->deadline_at->addSeconds(self::LEADERBOARD_SECONDS);
+            // The persisted deadline anchors the answer reveal and leaderboard.
+            // Polling, reconnecting and scheduler delays cannot restart either interval.
+            $leaderboardEndsAt = $current->deadline_at->addSeconds(self::ANSWER_REVEAL_SECONDS + self::LEADERBOARD_SECONDS);
 
             if ($now->lessThan($leaderboardEndsAt)) {
                 return;
@@ -405,7 +406,7 @@ class QuizSessionService
                 return;
             }
 
-            // Catch up to the original schedule, including every leaderboard break.
+            // Catch up to the original schedule, including both post-answer intervals.
             $this->openQuestion($next, $leaderboardEndsAt);
             $session->current_question_position = $next->position;
             $session->save();

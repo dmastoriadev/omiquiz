@@ -38,8 +38,19 @@ class QuizStatePresenter
             $players = $session->players()->withCount('answers')->orderBy('joined_at')->orderBy('id')->get();
             $question = $session->status === GameSession::STATUS_IN_PROGRESS
                 ? $session->questions()->where('position', $session->current_question_position)->first() : null;
+            $now = Carbon::now();
+            $revealEndsAt = $question?->deadline_at?->addSeconds(QuizSessionService::ANSWER_REVEAL_SECONDS);
             $phase = $session->status === GameSession::STATUS_IN_PROGRESS
-                ? ($question?->closed_at ? 'leaderboard' : 'question') : $session->status;
+                ? ($question?->closed_at
+                    ? ($revealEndsAt && $now->lessThan($revealEndsAt) ? 'answer_reveal' : 'leaderboard')
+                    : 'question') : $session->status;
+            $answerReveal = $phase === 'answer_reveal' && $question ? [
+                'question_id' => $question->id, 'question_position' => $question->position,
+                'answer' => $question->options[$question->correct_option], 'option_key' => $question->correct_option,
+                'starts_at' => $question->deadline_at->toISOString(), 'ends_at' => $revealEndsAt->toISOString(),
+                'duration_seconds' => QuizSessionService::ANSWER_REVEAL_SECONDS,
+                'is_final' => $question->position >= $session->total_questions,
+            ] : null;
             $answeredIds = $phase === 'question' && $question
                 ? $question->answers()->whereNotNull('selected_option')->pluck('game_session_player_id')->all() : [];
             $selectedOption = $player && $phase === 'question' && $question
@@ -92,7 +103,8 @@ class QuizStatePresenter
                 $roundLeaderboard = [
                     'question_id' => $question->id,
                     'question_position' => $question->position,
-                    'ends_at' => $question->deadline_at->addSeconds(QuizSessionService::LEADERBOARD_SECONDS)->toISOString(),
+                    'starts_at' => $revealEndsAt->toISOString(),
+                    'ends_at' => $revealEndsAt->addSeconds(QuizSessionService::LEADERBOARD_SECONDS)->toISOString(),
                     'duration_seconds' => QuizSessionService::LEADERBOARD_SECONDS,
                     'is_final' => $question->position >= $session->total_questions,
                     'entries' => $entries,
@@ -130,7 +142,7 @@ class QuizStatePresenter
                 'time_limit_per_question' => $session->time_limit_per_question,
                 'player_count' => $players->count(), 'ready_count' => $players->where('is_ready', true)->count(),
                 'total_questions' => $session->total_questions,
-                'current_position' => $session->current_question_position, 'server_now' => Carbon::now()->toISOString(),
+                'current_position' => $session->current_question_position, 'server_now' => $now->toISOString(),
                 'question' => $phase === 'question' && $question ? [
                     'id' => $question->id, 'position' => $question->position, 'text' => $question->question_text,
                     'options' => $question->options, 'deadline_at' => $question->deadline_at?->toISOString(),
@@ -143,7 +155,7 @@ class QuizStatePresenter
                     'gender' => GameSessionPlayer::GENDERS[$player->gender] ?? 'Not specified',
                 ] : null,
                 'players' => $roster, 'results' => $results, 'leaderboard' => $standings,
-                'round_leaderboard' => $roundLeaderboard,
+                'round_leaderboard' => $roundLeaderboard, 'answer_reveal' => $answerReveal,
                 'progress' => [
                     'completed_questions' => $closedQuestions->count(), 'total_questions' => $session->total_questions,
                     'percent' => $session->total_questions > 0

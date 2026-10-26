@@ -334,7 +334,7 @@
 .sketch-tool { min-height: 42px; border: 1px solid #6a8071; border-radius: 9px; padding: 8px 11px; background: #193c36; color: #f7edcf; font-size: .72rem; font-weight: 600; touch-action: manipulation; }
 .sketch-tool--active { border-color: #dec183; background: #5a4a2b; }
 .sketch-canvas-frame { margin: 16px 18px 0; overflow: hidden; border: 3px solid #c1a76e; border-radius: 12px; background: #fff; line-height: 0; }
-.sketch-tools + .sketch-canvas-frame { margin-top: 0; }
+.sketch-tools + .sketch-canvas-frame, .sketch-drawing-controls + .sketch-canvas-frame { margin-top: 0; }
 .sketch-canvas { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; background: #fff; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .sketch-canvas-frame--drawing .sketch-canvas { touch-action: none; cursor: crosshair; }
 .sketch-canvas-status { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 4px 12px; padding: 9px 20px 13px; color: #bdd0c1; font-size: .64rem; line-height: 1.6; }
@@ -449,3 +449,25 @@
 .round-rank-row--third, .final-camp-row--third { --rank-glow-border: #e2b18c; --rank-glow-rgb: 226, 177, 140; border-color: #c99064; background: rgba(72, 48, 34, .96); box-shadow: inset 0 0 20px rgba(217, 164, 120, .08); }
 .round-rank-row--second .round-rank-place, .round-rank-row--second .round-rank-score > span:first-child, .final-camp-row--second .final-camp-rank, .final-camp-row--second .final-camp-score strong { color: #e0e7ef; }
 .round-rank-row--third .round-rank-place, .round-rank-row--third .round-rank-score > span:first-child, .final-camp-row--third .final-camp-rank, .final-camp-row--third .final-camp-score strong { color: #e2b18c; }
+
+/* Five-second answer reveal uses the existing campsite colors and type. */
+.answer-reveal { width: 100%; max-width: 900px; margin-inline: auto; overflow: hidden; border: 1px solid #c69a48; border-radius: 24px; background: #092b2b; color: #f9ebc7; }
+.answer-reveal-heading { padding: 25px 28px 19px; }
+.answer-reveal-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.answer-reveal-eyebrow { color: #e0c58b; font-size: .7rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.answer-reveal-timer { display: flex; flex: none; width: 48px; height: 48px; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #b99c60; border-radius: 13px; background: #163a32; color: #f7df9b; }
+.answer-reveal-timer > span:first-child { font-size: 1.4rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.answer-reveal-timer > span:last-child { margin-top: 3px; font-size: .55rem; font-weight: 600; text-transform: uppercase; }
+.answer-reveal-title { margin-top: 14px; color: #fff1c3; font-family: var(--font-whitney); font-size: clamp(2rem, 4.5vw, 3.6rem); font-weight: 700; line-height: 1.12; letter-spacing: -.025em; overflow-wrap: anywhere; white-space: pre-line; }
+.answer-reveal-footer { margin: 0; padding: 0 28px 23px; color: #c3d1bf; font-size: .75rem; line-height: 1.6; }
+.sketch-game--reveal .sketch-canvas-frame { margin: 0 22px 16px; }
+.answer-reveal-loading { padding: 0 28px 18px; color: #d6c79f; font-size: .75rem; }
+@media (max-width: 639px) {
+    .answer-reveal { border-radius: 18px; }
+    .answer-reveal-heading { padding: 18px 15px 15px; }
+    .answer-reveal-eyebrow { font-size: .6rem; }
+    .answer-reveal-title { font-size: clamp(2rem, 8vw, 2.7rem); }
+    .answer-reveal-footer { padding: 0 15px 17px; font-size: .68rem; }
+    .sketch-game--reveal .sketch-canvas-frame { margin: 0 10px 13px; }
+    .answer-reveal-loading { padding-inline: 15px; }
+}

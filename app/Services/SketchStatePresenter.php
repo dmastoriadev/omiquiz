@@ -32,7 +32,20 @@ class SketchStatePresenter
                 ->where('position', '>=', max(1, $session->current_question_position - 2))
                 ->limit(12)->get(['drawer_id', 'position']);
             $playersById = $players->keyBy('id');
-            $phase = $session->status === GameSession::STATUS_IN_PROGRESS ? ($turn?->closed_at ? 'leaderboard' : 'drawing') : $session->status;
+            $now = CarbonImmutable::now();
+            $revealEndsAt = $turn?->deadline_at?->addSeconds(SketchSessionService::ANSWER_REVEAL_SECONDS);
+            $phase = $session->status === GameSession::STATUS_IN_PROGRESS
+                ? ($turn?->closed_at
+                    ? ($revealEndsAt && $now->lessThan($revealEndsAt) ? 'answer_reveal' : 'leaderboard')
+                    : 'drawing') : $session->status;
+            $answerReveal = $phase === 'answer_reveal' && $turn ? [
+                'question_id' => $turn->id, 'question_position' => $turn->position,
+                'turn_id' => $turn->id, 'drawer_name' => $playersById->get($turn->drawer_id)?->display_name,
+                'answer' => $turn->prompt, 'option_key' => null,
+                'starts_at' => $turn->deadline_at->toISOString(), 'ends_at' => $revealEndsAt->toISOString(),
+                'duration_seconds' => SketchSessionService::ANSWER_REVEAL_SECONDS,
+                'is_final' => $turn->position >= $session->total_questions,
+            ] : null;
             $guessedIds = $turn ? $turn->guesses()->pluck('game_session_player_id')->all() : [];
             $catalog = app(RpgProfileCatalog::class);
             $profiles = $players->mapWithKeys(fn ($p): array => [$p->id => array_intersect_key($catalog->profile((int) ($p->rpg_profile_id ?: $p->id)), array_flip(['id', 'avatar_url', 'sprite_url']))]);
@@ -55,7 +68,8 @@ class SketchStatePresenter
                 }, array_slice($standings, 0, 5));
                 $round = [
                     'question_id' => $turn->id, 'question_position' => $turn->position,
-                    'ends_at' => $turn->deadline_at->addSeconds(SketchSessionService::LEADERBOARD_SECONDS)->toISOString(),
+                    'starts_at' => $revealEndsAt->toISOString(),
+                    'ends_at' => $revealEndsAt->addSeconds(SketchSessionService::LEADERBOARD_SECONDS)->toISOString(),
                     'duration_seconds' => SketchSessionService::LEADERBOARD_SECONDS, 'is_final' => $turn->position >= $session->total_questions,
                     'entries' => $entries,
                 ];
@@ -108,10 +122,10 @@ class SketchStatePresenter
                 'letter_hint_max' => $session->letter_hint_max,
                 'player_count' => $players->count(), 'ready_count' => $players->where('is_ready', true)->count(),
                 'total_questions' => $session->total_questions, 'current_position' => $session->current_question_position,
-                'server_now' => CarbonImmutable::now()->toISOString(), 'question' => null, 'sketch' => $sketch,
+                'server_now' => $now->toISOString(), 'question' => null, 'sketch' => $sketch,
                 'answered' => $player && in_array($player->id, $guessedIds),
                 'player' => $player ? ['public_id' => $player->public_id, 'name' => $player->display_name, 'profile' => $profiles[$player->id], 'is_ready' => (bool) $player->is_ready, 'gender' => GameSessionPlayer::GENDERS[$player->gender] ?? 'Not specified'] : null,
-                'players' => $roster, 'results' => $results, 'leaderboard' => array_map($safeStanding, $standings), 'round_leaderboard' => $round,
+                'players' => $roster, 'results' => $results, 'leaderboard' => array_map($safeStanding, $standings), 'round_leaderboard' => $round, 'answer_reveal' => $answerReveal,
                 'progress' => ['completed_questions' => $closedCount, 'total_questions' => $session->total_questions, 'percent' => $session->total_questions ? (int) floor(100 * $closedCount / $session->total_questions) : 0, 'answered_count' => count($guessedIds)],
             ];
         }, 3);

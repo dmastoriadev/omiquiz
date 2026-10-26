@@ -37,6 +37,8 @@ export default function registerQuiz(Alpine) {
         leaderboardKey: null,
         leaderboardFrames: [],
         roundLocalDeadline: 0,
+        answerRevealKey: null,
+        answerRevealLocalDeadline: 0,
         campElement: null,
         campObserver: null,
         campResizeListener: null,
@@ -87,6 +89,7 @@ export default function registerQuiz(Alpine) {
         },
 
         get statusLabel() {
+            if (this.state.phase === 'answer_reveal') return 'Answer reveal';
             if (this.state.phase === 'leaderboard') return 'Top 5';
             if (this.state.phase === 'drawing') return 'Sketch & Guess';
             if (this.state.phase === 'bingo') return 'Reverse Bingo';
@@ -159,6 +162,19 @@ export default function registerQuiz(Alpine) {
                 && this.remainingSeconds > 0 && this.pendingQuestionId === this.state.question?.id;
         },
 
+        get answerRevealSeconds() {
+            const reveal = this.state.answer_reveal;
+            if (this.state.phase !== 'answer_reveal' || !reveal || !this.answerRevealLocalDeadline) return 0;
+            const serverRemaining = Date.parse(reveal.ends_at) - (this.now + this.serverOffset);
+            if (!Number.isFinite(serverRemaining)) return 0;
+            return Math.min(5, Math.max(0, Math.ceil(Math.min(serverRemaining, this.answerRevealLocalDeadline - this.now) / 1000)));
+        },
+
+        get showAnswerReveal() {
+            return ['quiz', 'sketch'].includes(this.state.game_type) && this.state.status === 'in_progress'
+                && this.state.phase === 'answer_reveal' && this.answerRevealSeconds > 0;
+        },
+
         get roundSeconds() {
             const round = this.state.round_leaderboard;
             if (this.state.phase !== 'leaderboard' || !round || !this.roundLocalDeadline) return 0;
@@ -176,10 +192,11 @@ export default function registerQuiz(Alpine) {
             const timestamp = Date.parse(next.server_now);
             // Responses from polling and answer submission can arrive out of order.
             if (Number.isFinite(timestamp) && timestamp < this.lastServerTime) return;
-            // Once a round closes, a late answer response cannot reopen it.
+            // A late submission/poll cannot reopen a closed round or replay its reveal.
+            const phaseOrder = {question: 0, drawing: 0, answer_reveal: 1, leaderboard: 2};
             if (Number(next.current_position) === Number(this.state.current_position)
-                && this.state.phase === 'leaderboard' && next.status === 'in_progress'
-                && (!next.phase || ['question', 'drawing'].includes(next.phase))) return;
+                && this.state.status === 'in_progress' && next.status === 'in_progress'
+                && (phaseOrder[next.phase || 'question'] ?? -1) < (phaseOrder[this.state.phase || 'question'] ?? -1)) return;
             const oldQuestion = this.state.question?.id;
             const campChanged = this.state.status !== next.status
                 || this.state.players?.length !== next.players?.length
@@ -212,6 +229,7 @@ export default function registerQuiz(Alpine) {
             }
             this.state = next;
             this.now = Date.now();
+            this.syncAnswerReveal(next, timestamp);
             this.syncLeaderboard(next, timestamp);
             if (oldQuestion !== next.question?.id) {
                 this.answerRequestSequence++;
@@ -390,6 +408,27 @@ export default function registerQuiz(Alpine) {
         toggleMotion() {
             this.motionPaused = !this.motionPaused;
             if (this.motionPaused) this.finishRankAnimation();
+        },
+
+        syncAnswerReveal(next, serverTimestamp) {
+            const reveal = next.status === 'in_progress' && next.phase === 'answer_reveal' ? next.answer_reveal : null;
+            if (!reveal) {
+                this.answerRevealKey = null;
+                this.answerRevealLocalDeadline = 0;
+                return;
+            }
+            const key = next.game_type + ':' + String(reveal.question_id);
+            const serverNow = Number.isFinite(serverTimestamp) ? serverTimestamp : this.now + this.serverOffset;
+            const remaining = Date.parse(reveal.ends_at) - serverNow;
+            const duration = Number.isFinite(remaining) ? Math.min(5000, Math.max(0, remaining)) : 0;
+            const localDeadline = this.now + duration;
+            if (this.answerRevealKey === key) {
+                // Repeat polls and delayed responses cannot restart the five seconds.
+                this.answerRevealLocalDeadline = Math.min(this.answerRevealLocalDeadline, localDeadline);
+                return;
+            }
+            this.answerRevealKey = key;
+            this.answerRevealLocalDeadline = localDeadline;
         },
 
         syncLeaderboard(next, serverTimestamp) {

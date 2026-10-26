@@ -113,6 +113,7 @@ export default function registerSketch(Alpine) {
             if (this.drawingError) return this.drawingError;
             if (!this.drawingReady) return 'Loading the sketch…';
             if (this.unsent.length || this.batches.length || this.sending) return 'Syncing your sketch…';
+            if (this.sketchPhase === 'answer_reveal') return 'Completed sketch';
             return this.sketch.is_drawer ? 'Sketch synced' : 'Live sketch';
         },
 
@@ -127,6 +128,7 @@ export default function registerSketch(Alpine) {
             const timestamp = Date.parse(state?.server_now || '');
             if (Number.isFinite(timestamp)) this.serverOffset = timestamp - Date.now();
             this.now = Date.now();
+            const previousPhase = this.sketchPhase;
             this.sketchPhase = state?.phase || 'waiting';
             this.sketchStatus = state?.status || 'waiting';
             this.isMember = !!state?.player;
@@ -163,14 +165,27 @@ export default function registerSketch(Alpine) {
                 if (followGuesses) this.scrollGuesses();
                 else this.unreadGuesses = true;
             }
-            if (this.sketchPhase !== 'drawing' && this.activeStroke) this.finishStroke();
+            if (this.sketchPhase !== 'drawing') {
+                // The reveal shows only accepted ink. A read can still confirm an
+                // in-flight request accepted before the deadline, without keeping
+                // a private unsaved stroke visible on the drawer's canvas.
+                this.releaseStroke(false);
+                clearTimeout(this.sendTimer);
+                this.unsent = [];
+                this.batches = [];
+                if (previousPhase === 'drawing') {
+                    this.drawingError = '';
+                    this.requestPaint();
+                    if (next?.turn_id) this.scheduleRead(0);
+                }
+            }
             this.updateCanvasInput();
             if (changed) {
                 this.requestPaint();
                 if (next?.turn_id) this.scheduleRead(0);
             }
             // A waiting component can be hidden when initially mounted.
-            if (this.canvas && this.sketchPhase === 'drawing') {
+            if (this.canvas && ['drawing', 'answer_reveal'].includes(this.sketchPhase)) {
                 if (typeof this.$nextTick === 'function') this.$nextTick(() => this.resizeCanvas());
                 else this.resizeCanvas();
             }
@@ -538,13 +553,13 @@ export default function registerSketch(Alpine) {
         },
 
         scheduleSend(delay = 80) {
-            if (this.destroyed || this.drawingBlocked || this.sending || !this.sketch?.turn_id) return;
+            if (this.destroyed || this.sketchPhase !== 'drawing' || this.drawingBlocked || this.sending || !this.sketch?.turn_id) return;
             clearTimeout(this.sendTimer);
             this.sendTimer = setTimeout(() => this.sendDrawing(), delay);
         },
 
         async sendDrawing() {
-            if (this.destroyed || this.sending || this.drawingBlocked || !this.sketch?.turn_id) return;
+            if (this.destroyed || this.sketchPhase !== 'drawing' || this.sending || this.drawingBlocked || !this.sketch?.turn_id) return;
             let batch = this.batches.find(item => !item.accepted);
             if (!batch && this.unsent.length) {
                 batch = {request_id: this.newRequestId(), events: this.unsent.splice(0, 8), accepted: false};

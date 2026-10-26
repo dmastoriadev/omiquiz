@@ -10,6 +10,7 @@
         <p x-show="connectionError" x-cloak role="status" class="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800" x-text="connectionError"></p>
 
         @include('play._camp', ['playerView' => false])
+        @include('play._answer-reveal')
         @include('play._round-leaderboard')
         @if ($session->game_type === 'sketch')@include('play._sketch')@endif
         @if ($session->game_type === 'bingo')@include('play._bingo', ['hostView' => false])@endif

@@ -11,7 +11,8 @@
         <p x-show="error" x-cloak role="alert" class="mb-5 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800" x-text="error"></p>
         @include('play._camp', ['playerView' => true])
         <div class="player-game-content" x-show="state.status !== 'waiting'" @if ($session->game_type !== 'bingo') x-cloak @elseif (($state['status'] ?? '') === 'waiting') style="display: none" @endif>
-            @include('play._round-leaderboard')
+            @include('play._answer-reveal')
+        @include('play._round-leaderboard')
             @if ($session->game_type === 'sketch')@include('play._sketch')@endif
             @if ($session->game_type === 'bingo')@include('play._bingo', ['hostView' => false])@endif
             <section x-show="isQuestionPhase" x-cloak class="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-white px-5 py-3" aria-label="Your player profile"><img :src="state.player?.profile?.avatar_url" alt="Your assigned avatar" width="44" height="44" class="h-11 w-11 shrink-0 rounded-xl bg-indigo-50"><div class="min-w-0 flex-1"><p class="text-xs text-slate-400">Playing as</p><h2 class="break-words text-sm font-semibold" x-text="state.player?.name"></h2></div><p class="text-xs text-slate-400" x-text="state.player?.gender || 'Not specified'"></p><a href="{{ route('public.sessions.show', $session) }}" target="_blank" rel="noopener" class="text-xs font-semibold text-indigo-600">Spectator view ↗</a></section>
