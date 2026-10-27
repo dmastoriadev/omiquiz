@@ -10,13 +10,13 @@ use Throwable;
 class TickQuizSessions extends Command
 {
     protected $signature = 'omiquiz:tick';
-    protected $description = 'Advance quiz and drawing deadlines and finalize results, including sessions with no connected browsers';
+    protected $description = 'Advance quiz, drawing and slot deadlines and finalize results, including sessions with no connected browsers';
 
     public function handle(QuizSessionService $service): int
     {
         $failed = false;
         GameSession::query()->where('status', GameSession::STATUS_IN_PROGRESS)
-            ->whereIn('game_type', [\App\Models\Game::TYPE_QUIZ, \App\Models\Game::TYPE_SKETCH])
+            ->whereIn('game_type', [\App\Models\Game::TYPE_QUIZ, \App\Models\Game::TYPE_SKETCH, \App\Models\Game::TYPE_SLOTS])
             ->chunkById(100, function ($sessions) use ($service, &$failed): void {
                 foreach ($sessions as $session) {
                     try {

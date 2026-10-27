@@ -21,6 +21,7 @@ class QuizSessionService
 
     public function create(Game $game, User $host): GameSession
     {
+        if ($game->isSlots()) return app(SlotsSessionService::class)->create($game, $host);
         if ($game->isBingo()) return app(BingoSessionService::class)->create($game, $host);
         if ($game->isSketch()) return app(SketchSessionService::class)->create($game, $host);
         return DB::transaction(function () use ($game, $host): GameSession {
@@ -95,6 +96,9 @@ class QuizSessionService
 
         return DB::transaction(function () use ($session, $name, $email, $token, $gender): GameSessionPlayer {
             $session = $this->lockSession($session);
+            if ($session->isSlots() && $session->status === GameSession::STATUS_WAITING) {
+                $session = app(SlotsSessionService::class)->normalizeWaiting($session);
+            }
             $tokenHash = hash('sha256', $token);
             $existing = GameSessionPlayer::query()->where('resume_token_hash', $tokenHash)->first();
 
@@ -194,6 +198,7 @@ class QuizSessionService
 
     public function start(GameSession $session): GameSession
     {
+        if ($session->isSlots()) return app(SlotsSessionService::class)->start($session);
         if ($session->isBingo()) return app(BingoSessionService::class)->start($session);
         if ($session->isSketch()) return app(SketchSessionService::class)->start($session);
         return DB::transaction(function () use ($session): GameSession {
@@ -246,6 +251,7 @@ class QuizSessionService
     public function advance(GameSession $session): GameSession
     {
         // Bingo has no clock: reads and scheduler ticks must never reveal a number.
+        if ($session->isSlots()) return app(SlotsSessionService::class)->advance($session);
         if ($session->isBingo()) return $session->refresh();
         if ($session->isSketch()) return app(SketchSessionService::class)->advance($session);
         return DB::transaction(function () use ($session): GameSession {
@@ -258,6 +264,7 @@ class QuizSessionService
 
     public function answer(GameSession $session, GameSessionPlayer $player, int $questionId, string $option): GameAnswer
     {
+        if ($session->isSlots()) $this->fail('session', 'Use the Ready controls for this Slot Machine game.');
         if ($session->isBingo()) $this->fail('session', 'Reverse Bingo cards are closed only by the host revealing a number.');
         if ($session->isSketch()) $this->fail('session', 'Use the guessing controls for this Sketch & Guess game.');
         $outcome = DB::transaction(function () use ($session, $player, $questionId, $option): array {
@@ -332,6 +339,7 @@ class QuizSessionService
 
     public function cancel(GameSession $session): GameSession
     {
+        if ($session->isSlots()) return app(SlotsSessionService::class)->cancel($session);
         if ($session->isBingo()) return app(BingoSessionService::class)->cancel($session);
         if ($session->isSketch()) return app(SketchSessionService::class)->cancel($session);
         $outcome = DB::transaction(function () use ($session): array {

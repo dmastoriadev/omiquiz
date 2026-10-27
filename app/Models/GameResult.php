@@ -16,6 +16,7 @@ class GameResult extends Model
         'correct_answers', 'wrong_answers', 'unanswered_questions',
         'total_questions', 'total_response_time_ms', 'rank', 'finalized_at',
         'bingo_cards_remaining', 'bingo_eliminated_on_draw',
+        'slot_prize', 'slot_won_position',
     ];
 
     protected $hidden = ['player_email'];
@@ -33,6 +34,7 @@ class GameResult extends Model
     {
         return [
             'guess_points' => 'integer', 'draw_points' => 'integer',
+            'slot_won_position' => 'integer',
             'bingo_cards_remaining' => 'integer', 'bingo_eliminated_on_draw' => 'integer',
             'total_score' => 'integer',
             'correct_answers' => 'integer',

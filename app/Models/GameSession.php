@@ -23,9 +23,10 @@ class GameSession extends Model
         'time_limit_per_question', 'letter_hint_max', 'status', 'current_question_position',
         'total_questions', 'started_at', 'completed_at', 'cancelled_at',
         'bingo_min_plays', 'bingo_max_plays', 'bingo_plan',
+        'slot_prize_positions', 'slot_plan',
     ];
 
-    protected $hidden = ['sketch_words', 'bingo_plan'];
+    protected $hidden = ['sketch_words', 'bingo_plan', 'slot_plan'];
 
     protected $attributes = [
         'game_type' => Game::TYPE_QUIZ,
@@ -42,6 +43,7 @@ class GameSession extends Model
         return [
             'sketch_words' => 'array',
             'bingo_plan' => 'array',
+            'slot_prize_positions' => 'array', 'slot_plan' => 'array',
             'bingo_min_plays' => 'integer',
             'bingo_max_plays' => 'integer',
             'min_players' => 'integer',
@@ -79,6 +81,10 @@ class GameSession extends Model
     {
         return $this->belongsTo(User::class, 'hosted_by');
     }
+
+    public function isSlots(): bool { return $this->game_type === Game::TYPE_SLOTS; }
+
+    public function slotRolls(): HasMany { return $this->hasMany(SlotRoll::class)->orderBy('position'); }
 
     public function isBingo(): bool { return $this->game_type === Game::TYPE_BINGO; }
 

@@ -2,7 +2,7 @@
 @section('title', 'Games')
 @section('content')
     <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div><h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Games</h1><p class="mt-2 text-sm text-slate-500">Choose Quiz, Sketch & Guess or Reverse Bingo, then invite your players.</p></div>
+        <div><h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Games</h1><p class="mt-2 text-sm text-slate-500">Choose Quiz, Sketch & Guess, Reverse Bingo or Astoria Slots, then invite your players.</p></div>
         <a href="{{ route('admin.games.create') }}" class="oq-button-primary">Create game</a>
     </div>
     @if ($games->isEmpty())
@@ -18,9 +18,9 @@
                     <h2 class="break-words text-lg font-semibold"><a href="{{ route('admin.games.show', $game) }}" class="hover:text-indigo-600">{{ $game->title }}</a></h2>
                     <p class="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{{ $game->description ?: 'Ready for your next game night.' }}</p>
                     <dl class="my-6 grid grid-cols-2 gap-4 text-sm">
-                        <div><dt class="text-slate-400">{{ $game->game_type === 'bingo' ? 'Final draw' : ($game->game_type === 'sketch' ? 'Words' : 'Questions') }}</dt><dd class="mt-1 font-semibold">{{ $game->game_type === 'bingo' ? 'Play '.$game->bingo_max_plays : ($game->game_type === 'sketch' ? $game->words_count : $game->questions_count) }}</dd></div>
-                        <div><dt class="text-slate-400">Players</dt><dd class="mt-1 font-semibold">{{ $game->min_players }}–{{ $game->max_players }}</dd></div>
-                        <div><dt class="text-slate-400">{{ $game->game_type === 'bingo' ? 'Number reveal' : ($game->game_type === 'sketch' ? 'Per drawing turn' : 'Per question') }}</dt><dd class="mt-1 font-semibold">{{ $game->game_type === 'bingo' ? 'Host controlled' : $game->time_limit_per_question.' seconds' }}</dd></div>
+                        <div><dt class="text-slate-400">{{ $game->game_type === 'slots' ? 'Total rolls' : ($game->game_type === 'bingo' ? 'Final draw' : ($game->game_type === 'sketch' ? 'Words' : 'Questions')) }}</dt><dd class="mt-1 font-semibold">{{ $game->game_type === 'slots' ? '5' : ($game->game_type === 'bingo' ? 'Play '.$game->bingo_max_plays : ($game->game_type === 'sketch' ? $game->words_count : $game->questions_count)) }}</dd></div>
+                        <div><dt class="text-slate-400">Players</dt><dd class="mt-1 font-semibold">{{ $game->game_type === 'slots' ? 6 : $game->min_players }}–{{ $game->game_type === 'slots' ? max(6, $game->max_players) : $game->max_players }}</dd></div>
+                        <div><dt class="text-slate-400">{{ $game->game_type === 'slots' ? 'Countdown / spin' : ($game->game_type === 'bingo' ? 'Number reveal' : ($game->game_type === 'sketch' ? 'Per drawing turn' : 'Per question')) }}</dt><dd class="mt-1 font-semibold">{{ $game->game_type === 'slots' ? '5 seconds each' : ($game->game_type === 'bingo' ? 'Host controlled' : $game->time_limit_per_question.' seconds') }}</dd></div>
                         <div><dt class="text-slate-400">Sessions</dt><dd class="mt-1 font-semibold">{{ $game->sessions_count }}</dd></div>
                     </dl>
                     <a href="{{ route('admin.games.show', $game) }}" class="oq-button-secondary mt-auto">Manage game</a>

@@ -7,6 +7,7 @@ use App\Models\GameSessionPlayer;
 use App\Services\QuizSessionService;
 use App\Services\QuizStatePresenter;
 use App\Services\SketchSessionService;
+use App\Services\SlotsSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,9 @@ class PlayController extends Controller
 
     public function show(Request $request, GameSession $session): View
     {
+        if ($session->isSlots() && $session->status === GameSession::STATUS_WAITING) {
+            $session = app(SlotsSessionService::class)->normalizeWaiting($session);
+        }
         $player = $this->participant($request, $session);
         if (! $player) {
             return view('play.join', compact('session'));
@@ -90,6 +94,21 @@ class PlayController extends Controller
         $player = $this->sessions->setReady($session, $player, $request->boolean('is_ready'));
 
         return response()->json($this->presenter->present($session, $player));
+    }
+
+    public function slotReady(Request $request, GameSession $session, SlotsSessionService $slots): JsonResponse
+    {
+        abort_unless($session->isSlots(), 404);
+        $player = $this->participant($request, $session);
+        abort_unless($player, 403, 'Reopen your invitation in the browser you used to join.');
+        $data = $request->validate([
+            'expected_position' => ['required', 'integer', 'min:1', 'max:'.SlotsSessionService::totalRolls($session)],
+            'is_ready' => ['required', 'boolean'],
+        ]);
+        $session = $slots->ready($session, $player, (int) $data['expected_position'], $request->boolean('is_ready'));
+
+        return response()->json($this->presenter->present($session, $player))
+            ->header('Cache-Control', 'private, no-store');
     }
 
     public function answer(Request $request, GameSession $session): JsonResponse

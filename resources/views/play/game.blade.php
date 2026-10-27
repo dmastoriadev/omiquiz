@@ -2,7 +2,7 @@
 @section('title', $session->game_title)
 @section('page-width', 'max-w-none')
 @section('content')
-    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('play.state', $session), 'answer' => route('play.answer', $session), 'profile' => route('play.profile', $session), 'ready' => route('play.ready', $session), 'guess' => route('play.sketch.guess', $session), 'hint' => route('play.sketch.hint', $session), 'drawingWrite' => route('play.sketch.draw', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
+    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('play.state', $session), 'answer' => route('play.answer', $session), 'profile' => route('play.profile', $session), 'ready' => route('play.ready', $session), 'slotsReady' => $session->game_type === 'slots' ? route('play.slots.ready', $session) : null, 'guess' => route('play.sketch.guess', $session), 'hint' => route('play.sketch.hint', $session), 'drawingWrite' => route('play.sketch.draw', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" @slots-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
         <div class="spectator-heading">
             <div class="min-w-0"><p class="spectator-eyebrow" x-text="state.status === 'waiting' ? 'Player view / Waiting lobby' : 'Player view / ' + statusLabel"></p><h1 class="mt-1 break-words text-3xl font-bold tracking-tight sm:text-4xl">{{ $session->game_title }}</h1></div>
             <span class="spectator-status"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span><span x-text="state.status === 'waiting' ? 'Waiting for host' : statusLabel"></span></span>
@@ -14,6 +14,7 @@
             @include('play._answer-reveal')
         @include('play._round-leaderboard')
             @if ($session->game_type === 'sketch')@include('play._sketch')@endif
+        @if ($session->game_type === 'slots')@include('play._slots')@endif
             @if ($session->game_type === 'bingo')@include('play._bingo', ['hostView' => false])@endif
             <section x-show="isQuestionPhase" x-cloak class="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-white px-5 py-3" aria-label="Your player profile"><img :src="state.player?.profile?.avatar_url" alt="Your assigned avatar" width="44" height="44" class="h-11 w-11 shrink-0 rounded-xl bg-indigo-50"><div class="min-w-0 flex-1"><p class="text-xs text-slate-400">Playing as</p><h2 class="break-words text-sm font-semibold" x-text="state.player?.name"></h2></div><p class="text-xs text-slate-400" x-text="state.player?.gender || 'Not specified'"></p><a href="{{ route('public.sessions.show', $session) }}" target="_blank" rel="noopener" class="text-xs font-semibold text-indigo-600">Spectator view ↗</a></section>
         <section x-show="isQuestionPhase" x-cloak class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -28,10 +29,10 @@
         </section>
         @if ($session->game_type === 'bingo')
             @include('play._bingo-results')
-        @else
+        @elseif ($session->game_type !== 'slots')
             @include('play._results')
         @endif
-        <section x-show="state.status === 'cancelled'" x-cloak class="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h1 class="text-2xl font-semibold">The host ended this session</h1><p class="mt-3 text-sm text-slate-500">Ask your host for a new link to play again.</p></section>
+        <section x-show="state.status === 'cancelled'" x-cloak class="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h1 class="text-2xl font-semibold" x-text="state.game_type === 'slots' && state.slots_restart_required === true ? 'A new Slots session is needed' : 'The host ended this session'">The host ended this session</h1><p class="mt-3 text-sm text-slate-500" role="status" x-text="state.game_type === 'slots' && state.slots_restart_required === true ? (state.slots_restart_message || 'This session used the previous small-player rules and cannot continue. The host needs to create a new Slots session with at least 6 players.') : 'Ask your host for a new link to play again.'">Ask your host for a new link to play again.</p></section>
         </div>
     </div>
 @endsection

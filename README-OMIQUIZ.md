@@ -1,31 +1,50 @@
-# Omiquiz — finish rounds when everyone is done
+# Omiquiz — Slots: six players, no repeat winners
 
-Merge this changed-files update into your existing Omiquiz project. It includes the five-second answer reveal update and the early-finish change together. Upload the `app`, `resources` and `public/build` folders, replacing matching files. Compiled JavaScript, CSS and their font assets are included.
+Astoria Slots has a fixed **minimum of six joined players**. The five-roll schedule awards six prizes to **six different people**. Once a participant wins any prize, they cannot receive another prize in that session. The maximum remains configurable, up to 200 players (default 100).
 
-## New round sequence: Quiz and Sketch only
+## Prize schedule
 
-1. Quiz closes as soon as every player has submitted an answer, whether correct or incorrect. Sketch closes as soon as every guesser (excluding the current drawer) has guessed correctly. If someone has not finished, the configured timer still closes the round.
-2. The correct answer appears for five seconds.
-3. The existing top-five leaderboard appears for seven seconds.
-4. The next question/word starts. After the last question/word, final results are saved and displayed instead.
+| Roll | Award |
+| --- | --- |
+| 1 | One Black consolation |
+| 2 | One Bronze consolation |
+| 3 | One Black consolation |
+| 4 | One Silver consolation and one Black consolation, to different players |
+| 5 | One Gold jackpot |
 
-Quiz shows the full correct answer in a large heading, with its option letter above it. Sketch shows the word in a large heading above the actual completed drawing. The same canvas is retained, including accepted strokes, eraser changes and undo history. Drawing tools and guessing controls are hidden during the reveal.
+The three Black recipients and the Bronze, Silver and Gold recipients are all distinct. No prizes are skipped, and no participant receives two awards. The server randomly assigns the six recipients once when the session starts. Refreshes and repeated requests cannot change the saved outcomes. All non-winning machines have non-matching combinations; winning machines have three matching logos.
 
-The reveal is shared by player, spectator and host screens. It keeps the emerald/gold theme and Whitney font. Gold, silver and bronze crowns and row highlights remain. Bingo remains manually controlled and has no answer-reveal step.
+There are exactly **five rolls**, with no rounds. Every roll waits for everyone to press Ready, then runs a **5-second countdown → 5-second animated spin → 5-second result display**. A winning participant keeps their normal machine, Ready button and animations but receives no additional prize. There is no eligibility notice.
 
-The server anchors the five-second reveal and seven-second leaderboard to the saved actual close time, including early finishes. The final submission receives the answer reveal immediately; other open screens receive it on their next state poll (normally within one second). The next round receives its full configured timer. Refreshes and repeat polls do not restart either timer. Late submissions cannot score after the answer becomes public. A reconnect receives the remaining portion of the current interval. Final scores and response-time calculations exclude both display intervals.
+## Existing sessions
 
-## Apply on Hostinger / CloudPanel
+Existing waiting rooms keep their join links and participants and now require six players. Previous capacities of two through five are raised to six so enough participants can join. Higher maximum capacities are preserved, including places already occupied by joined participants. Old saved minimums of two or thirty-five do not override the fixed six-player requirement.
+
+An already-running session from the previous small-group release with fewer than six participants cannot satisfy the no-repeat rule. It is stopped on its next poll, Ready action or scheduler update. The host and players receive a notice to create a new session with at least six participants. Its plan and previously revealed history are retained; future reveals and finalization are blocked.
+
+Completed session history remains readable. Already-running older sessions with unique prize recipients continue with their saved outcomes. Other game categories retain their existing rules.
+
+## Links and results
+
+Create an active Astoria Slots game and a session, then share the player join link. The host screen provides a spectator link showing everyone's machine, current winners and award history. Your installed app generates the actual `/watch/{session-slug}` URL.
+
+Each new prize recipient has one final award card and one saved result. The CSV retains `slot_prize`, `slot_won_position` and `slot_awards` for prize details and historical compatibility.
+
+## Install
+
+This archive contains the complete Slots patch, including the original migration and current compiled assets. Merge the included `app`, `database`, `resources`, `routes`, and `public` folders into the existing application. Include `public/build` and its manifest. In the application directory, run:
 
 ```bash
-cd ~/htdocs/omi.ahrgrpwebdrafts.com
+php artisan migrate --force
 php artisan optimize:clear
 ```
 
-Refresh all game tabs with Ctrl+F5. If `php artisan schedule:work` is running, stop it and restart it to load the updated timing code. Normal cron invocations load the new code on their next run.
+There is no new database migration beyond the original Slots migration. If Slots was already installed, the migration command has nothing new to apply. Restart any running `php artisan schedule:work` process and refresh open tabs with Ctrl+F5.
 
-No migration is required. If deploying only the source files instead of the included build, run `npm run build` after merging (Windows PowerShell: `npm.cmd run build`). Existing completed results are retained; in-progress Quiz/Sketch rounds use the new reveal once the update is active and clients are refreshed.
+On Hostinger/CloudPanel, the project directory is `~/htdocs/omi.ahrgrpwebdrafts.com`. Compiled assets are included; a local build is optional (`npm run build`, or `npm.cmd run build` in PowerShell).
 
-## Validation
+## Logos
 
-See VALIDATION-EARLY-ROUND-CLOSE.md and VALIDATION-ANSWER-REVEAL.md. Timing, secrecy, scoring and drawing persistence passed automated checks; final browser visuals and physical mobile devices were not tested here.
+The Black logo is included at `/images/logos/AHR-logo-square.webp`. Keep the Gold, Silver and Bronze logos at `/images/logos/AHR-logo-gold.webp`, `/images/logos/AHR-logo-silver.webp` and `/images/logos/AHR-logo-bronze.webp`. The existing tinted Black-logo fallback remains available when a medal image cannot load.
+
+See `VALIDATION-SLOTS.md` for verification and environment limits.

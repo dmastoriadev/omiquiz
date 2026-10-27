@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Services\QuizSessionService;
+use App\Services\SlotsPlanGenerator;
+use App\Services\SlotsSessionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,9 +37,11 @@ class GameController extends Controller
         $game = $request->user()->quizGames()->create($this->validated($request));
 
         return redirect()->route('admin.games.show', $game)
-            ->with('success', $game->isBingo()
-                ? 'Reverse Bingo created. Set the game to Active, then create a session. Cards are assigned when you start.'
-                : 'Game created. Upload '.($game->game_type === 'sketch' ? 'drawing words' : 'questions').' to prepare a session.');
+            ->with('success', $game->isSlots()
+                ? 'Slot Machine created. Set the game to Active, then create a session and share the join and public display links.'
+                : ($game->isBingo()
+                    ? 'Reverse Bingo created. Set the game to Active, then create a session. Cards are assigned when you start.'
+                    : 'Game created. Upload '.($game->game_type === 'sketch' ? 'drawing words' : 'questions').' to prepare a session.'));
     }
 
     public function show(Game $game): View
@@ -80,10 +84,17 @@ class GameController extends Controller
                         'total_questions' => $lockedGame->bingo_max_plays,
                     ]);
             }
+            if ($lockedGame->isSlots()) {
+                $waiting = $lockedGame->sessions()->where('status', 'waiting')->where('game_type', Game::TYPE_SLOTS)
+                    ->orderBy('id')->lockForUpdate()->get();
+                foreach ($waiting as $session) {
+                    app(SlotsSessionService::class)->normalizeWaiting($session, $lockedGame);
+                }
+            }
         }, 3);
 
         return redirect()->route('admin.games.show', $game)
-            ->with('success', 'Game updated. Timer, hint and Reverse Bingo draw settings also apply to waiting sessions. Games already in progress keep their original settings.');
+            ->with('success', 'Game updated. Timer, hint and Reverse Bingo draw settings also apply to waiting sessions. Waiting Slot Machine sessions use updated player limits and the fixed five-roll schedule. Games already in progress keep their original settings.');
     }
 
     public function destroy(Game $game): RedirectResponse
@@ -112,18 +123,21 @@ class GameController extends Controller
             // Reverse Bingo advances only when the host reveals another number.
             $request->merge(['time_limit_per_question' => $game?->time_limit_per_question ?? 30]);
         }
+        if ($type === Game::TYPE_SLOTS) {
+            $request->merge(['time_limit_per_question' => 5, 'min_players' => 6]);
+        }
         foreach (['bingo_min_plays' => 3, 'bingo_max_plays' => 20] as $field => $default) {
             if ($type !== Game::TYPE_BINGO || ! $request->exists($field)) {
                 $request->merge([$field => $game?->{$field} ?? $default]);
             }
         }
 
-        $data = $request->validate([
+        $rules = [
             'game_type' => ['required', 'string', Rule::in($game ? [$game->game_type] : array_keys(Game::TYPES))],
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:10000'],
-            'min_players' => ['required', 'integer', $type === 'quiz' ? 'min:1' : 'min:2', $type === Game::TYPE_BINGO ? 'max:32' : 'max:200'],
-            'max_players' => ['required', 'integer', $type === 'quiz' ? 'min:1' : 'min:2', $type === Game::TYPE_BINGO ? 'max:32' : 'max:200', 'gte:min_players'],
+            'min_players' => ['required', 'integer', $type === Game::TYPE_SLOTS ? 'min:6' : ($type === 'quiz' ? 'min:1' : 'min:2'), $type === Game::TYPE_BINGO ? 'max:32' : 'max:200'],
+            'max_players' => ['required', 'integer', $type === Game::TYPE_SLOTS ? 'min:6' : ($type === 'quiz' ? 'min:1' : 'min:2'), $type === Game::TYPE_BINGO ? 'max:32' : 'max:200', 'gte:min_players'],
             'time_limit_per_question' => ['required', 'integer', 'min:1', 'max:300'],
             'letter_hint_max' => ['required', 'integer', 'min:0', 'max:100'],
             'bingo_min_plays' => ['required', 'integer', 'min:3', 'max:47'],
@@ -133,7 +147,13 @@ class GameController extends Controller
                 Game::STATUS_ACTIVE,
                 Game::STATUS_ARCHIVED,
             ])],
-        ]);
+        ];
+        $data = $request->validate($rules);
+        if ($type === Game::TYPE_SLOTS) {
+            // The five-roll sequence is fixed. Old forms cannot restore the
+            // previous fifteen-roll schedule or change a prize position.
+            $data['slot_prize_positions'] = SlotsPlanGenerator::DEFAULT_PRIZE_POSITIONS;
+        }
 
         if ($type === Game::TYPE_BINGO && $data['bingo_min_plays'] > $data['bingo_max_plays'] - 3) {
             throw ValidationException::withMessages([

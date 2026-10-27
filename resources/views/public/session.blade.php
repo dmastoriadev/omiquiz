@@ -2,7 +2,7 @@
 @section('title', 'Watch '.$session->game_title)
 @section('page-width', 'max-w-none')
 @section('content')
-    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('public.sessions.state', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
+    <div class="spectator-page" x-data="quizBoard(@js($state), @js(['state' => route('public.sessions.state', $session), 'drawingRead' => route('public.sessions.drawing', $session)]))" @sketch-state="applyState($event.detail)" @slots-state="applyState($event.detail)" :data-motion-paused="motionPaused ? 'true' : 'false'">
         <div class="spectator-heading">
             <div class="min-w-0"><p class="spectator-eyebrow" x-text="state.status === 'waiting' ? 'Spectator view / Waiting lobby' : 'Spectator view / ' + statusLabel"></p><h1 class="mt-1 break-words text-3xl font-bold tracking-tight sm:text-4xl">{{ $session->game_title }}</h1></div>
             <span class="spectator-status"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span><span x-text="state.status === 'waiting' ? 'Waiting for host' : statusLabel"></span></span>
@@ -13,6 +13,7 @@
         @include('play._answer-reveal')
         @include('play._round-leaderboard')
         @if ($session->game_type === 'sketch')@include('play._sketch')@endif
+        @if ($session->game_type === 'slots')@include('play._slots')@endif
         @if ($session->game_type === 'bingo')@include('play._bingo', ['hostView' => false])@endif
 
         <div x-show="isQuestionPhase" x-cloak class="space-y-6">
@@ -25,9 +26,9 @@
 
         @if ($session->game_type === 'bingo')
             @include('play._bingo-results')
-        @else
+        @elseif ($session->game_type !== 'slots')
             @include('play._results')
         @endif
-        <section x-show="state.status === 'cancelled'" x-cloak class="rounded-2xl border border-slate-200 bg-white p-8"><h2 class="text-2xl font-semibold">This quest has ended early</h2><p class="mt-3 text-sm leading-6 text-slate-500">The host cancelled this session. Visit the arena to find another game.</p><a href="{{ route('home') }}" class="oq-button-secondary mt-5">Browse games</a></section>
+        <section x-show="state.status === 'cancelled'" x-cloak class="rounded-2xl border border-slate-200 bg-white p-8"><h2 class="text-2xl font-semibold" x-text="state.game_type === 'slots' && state.slots_restart_required === true ? 'A new Slots session is needed' : 'This quest has ended early'">This quest has ended early</h2><p class="mt-3 text-sm leading-6 text-slate-500" role="status" x-text="state.game_type === 'slots' && state.slots_restart_required === true ? (state.slots_restart_message || 'This session used the previous small-player rules and cannot continue. The host needs to create a new Slots session with at least 6 players.') : 'The host cancelled this session. Visit the arena to find another game.'">The host cancelled this session. Visit the arena to find another game.</p><a href="{{ route('home') }}" class="oq-button-secondary mt-5">Browse games</a></section>
     </div>
 @endsection

@@ -17,8 +17,21 @@ class ResultsCsvExporter
             'Only completed sessions can be exported.'
         );
         $catalog = app(RpgProfileCatalog::class);
+        $slotAwards = [];
+        if ($session->isSlots()) {
+            SlotsSessionService::validatePlan($session);
+            $rolls = $session->slot_plan['rolls'];
+            ksort($rolls, SORT_NUMERIC);
+            foreach ($rolls as $position => $roll) {
+                foreach ($roll['players'] as $playerId => $outcome) {
+                    if ($outcome['prize'] !== null) {
+                        $slotAwards[$playerId][] = ['prize' => $outcome['prize'], 'position' => (int) $position];
+                    }
+                }
+            }
+        }
 
-        return response()->streamDownload(function () use ($session, $catalog): void {
+        return response()->streamDownload(function () use ($session, $catalog, $slotAwards): void {
             $output = fopen('php://output', 'wb');
 
             if ($output === false) {
@@ -27,7 +40,7 @@ class ResultsCsvExporter
 
             try {
                 fwrite($output, "\xEF\xBB\xBF");
-                fputcsv($output, [
+                $headers = [
                     'session_id', 'session_slug', 'game_id', 'game_title',
                     'started_at', 'completed_at', 'result_id', 'game_session_player_id',
                     'player_public_id', 'player_name', 'player_email', 'rank', 'is_winner',
@@ -36,7 +49,11 @@ class ResultsCsvExporter
                     'gender', 'rpg_profile_id', 'rpg_profile_name', 'rpg_profile_class',
                     'game_type', 'guess_points', 'draw_points',
                     'bingo_cards_remaining', 'bingo_eliminated_on_draw',
-                ], ',', '"', '');
+                ];
+                if ($session->isSlots()) {
+                    array_push($headers, 'slot_prize', 'slot_won_position', 'slot_awards');
+                }
+                fputcsv($output, $headers, ',', '"', '');
 
                 foreach ($session->results()->with('player')->lazy(200) as $result) {
                     $profile = $result->player?->rpg_profile_id
@@ -73,6 +90,10 @@ class ResultsCsvExporter
                         $session->isBingo() ? $result->bingo_cards_remaining : '',
                         $session->isBingo() ? $result->bingo_eliminated_on_draw : '',
                     ];
+                    if ($session->isSlots()) {
+                        array_push($row, $result->slot_prize, $result->slot_won_position,
+                            json_encode($slotAwards[$result->game_session_player_id] ?? [], JSON_THROW_ON_ERROR));
+                    }
 
                     fputcsv($output, array_map($this->safeCell(...), $row), ',', '"', '');
                 }

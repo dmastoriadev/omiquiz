@@ -93,11 +93,14 @@ export default function registerQuiz(Alpine) {
             if (this.state.phase === 'leaderboard') return 'Top 5';
             if (this.state.phase === 'drawing') return 'Sketch & Guess';
             if (this.state.phase === 'bingo') return 'Reverse Bingo';
+            if (this.state.game_type === 'slots' && this.state.status === 'in_progress') {
+                return {slots_ready: 'Ready to roll', slots_countdown: 'Starting soon', slots_spinning: 'Rolling', slots_result: 'Roll results'}[this.state.phase] || 'Astoria Slots';
+            }
             return {waiting: 'Lobby', in_progress: 'Live quiz', completed: 'Finished', cancelled: 'Cancelled'}[this.state.status] || '';
         },
 
         get isQuestionPhase() {
-            return this.state.game_type !== 'bingo' && this.state.status === 'in_progress' && (!this.state.phase || this.state.phase === 'question');
+            return !['bingo', 'slots'].includes(this.state.game_type) && this.state.status === 'in_progress' && (!this.state.phase || this.state.phase === 'question');
         },
 
         get bingoActivePlayers() {
@@ -193,7 +196,8 @@ export default function registerQuiz(Alpine) {
             // Responses from polling and answer submission can arrive out of order.
             if (Number.isFinite(timestamp) && timestamp < this.lastServerTime) return;
             // A late submission/poll cannot reopen a closed round or replay its reveal.
-            const phaseOrder = {question: 0, drawing: 0, answer_reveal: 1, leaderboard: 2};
+            const phaseOrder = {question: 0, drawing: 0, answer_reveal: 1, leaderboard: 2,
+                slots_ready: 0, slots_countdown: 1, slots_spinning: 2, slots_result: 3};
             if (Number(next.current_position) === Number(this.state.current_position)
                 && this.state.status === 'in_progress' && next.status === 'in_progress'
                 && (phaseOrder[next.phase || 'question'] ?? -1) < (phaseOrder[this.state.phase || 'question'] ?? -1)) return;
